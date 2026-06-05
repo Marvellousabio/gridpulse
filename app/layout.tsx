@@ -10,8 +10,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'GridPulse Command Center',
+  description: 'Enterprise AI Infrastructure Dashboard for next-generation power grid management',
   generator: 'v0.app',
   icons: {
     icon: [
