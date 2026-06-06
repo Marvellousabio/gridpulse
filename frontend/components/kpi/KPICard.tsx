@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -11,7 +12,7 @@ interface KPICardProps {
   index: number;
 }
 
-export function KPICard({ label, value, growth, icon, index }: KPICardProps) {
+export const KPICard = memo(function KPICard({ label, value, growth, icon, index }: KPICardProps) {
   const isPositive = growth >= 0;
 
   return (
@@ -37,4 +38,4 @@ export function KPICard({ label, value, growth, icon, index }: KPICardProps) {
       </div>
     </motion.div>
   );
-}
+});

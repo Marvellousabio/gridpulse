@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Package, ShoppingCart, Users, Calendar, BarChart3, Settings, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Calendar, BarChart3, Settings, HelpCircle, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,7 +11,12 @@ interface NavItem {
   href: string;
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const mainNav: NavItem[] = [
@@ -31,10 +36,9 @@ export function Sidebar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="w-72 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-800 fixed left-0 top-0 h-full overflow-y-auto">
-      {/* Logo */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8">
-        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+    <div className="w-72 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-800 h-full overflow-y-auto">
+      <div className="p-8 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity" onClick={onClose}>
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
             <span className="text-white font-bold text-lg">G</span>
           </div>
@@ -43,9 +47,13 @@ export function Sidebar() {
             <p className="text-xs text-gray-400">Command Center</p>
           </div>
         </Link>
-      </motion.div>
+        {onClose && (
+          <button onClick={onClose} className="md:hidden text-gray-400 hover:text-white">
+            <X className="w-6 h-6" />
+          </button>
+        )}
+      </div>
 
-      {/* Main Navigation */}
       <nav className="px-4 py-6 space-y-2">
         {mainNav.map((item, index) => (
           <motion.div
@@ -56,6 +64,7 @@ export function Sidebar() {
           >
             <Link
               href={item.href}
+              onClick={onClose}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive(item.href)
                   ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30'
@@ -69,12 +78,12 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom Navigation */}
       <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2 border-t border-slate-800 bg-gradient-to-t from-slate-950 to-transparent">
         {bottomNav.map((item, index) => (
           <Link
             key={index}
             href={item.href}
+            onClick={onClose}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
               isActive(item.href)
                 ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30'

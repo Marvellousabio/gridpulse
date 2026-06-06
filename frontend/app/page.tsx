@@ -9,14 +9,28 @@ import { AIAgentTerminal } from '@/components/infrastructure/AIAgentTerminal';
 import { SettlementLedger } from '@/components/ledger/SettlementLedger';
 import { MonitoringMetrics } from '@/components/monitoring/MonitoringMetrics';
 import { TopPerformers } from '@/components/monitoring/TopPerformers';
+import { useEffect, useState } from 'react';
 
 export default function Page() {
+  const [today, setToday] = useState('');
+
+  useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: '2-digit',
+      }).replace(/(\w+ \w+ \d+),? (\d+)/, '$1, $2')
+    );
+  }, []);
+
   return (
     <DashboardLayout>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Welcome Back, Commander</h1>
-        <p className="text-gray-600 mt-2">Monday, March 01, 2026 • Real-time Grid Operations</p>
+        <p className="text-gray-600 mt-2">{today ? `${today} • Real-time Grid Operations` : 'Loading...'}</p>
       </div>
 
       {/* KPI Cards */}
