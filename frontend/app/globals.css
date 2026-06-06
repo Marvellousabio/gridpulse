@@ -39,6 +39,21 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-ink: #0a0e14;
+  --color-ink-2: #10151f;
+  --color-ink-3: #161d2a;
+  --color-line: #243042;
+  --color-text: #e7ecf3;
+  --color-text-soft: #9fb0c4;
+  --color-lithium: #f4a52b;
+  --color-hydrogen: #28cbd6;
+  --color-clean: #3dbe78;
+  --color-agentic: #7c6cf0;
+  --color-critical: #e5564b;
+  --color-aws: #ff9900;
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-serif: var(--font-spectral), Georgia, serif;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -146,4 +161,56 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* GridPulse Ops Console */
+.ops-console {
+  --ink: #0a0e14;
+  --ink-2: #10151f;
+  --ink-3: #161d2a;
+  --line: #243042;
+  --text: #e7ecf3;
+  --text-soft: #9fb0c4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ops-console *,
+  .ops-console *::before,
+  .ops-console *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.ops-console .scanline {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 108, 240, 0.15) 45%,
+    rgba(40, 203, 214, 0.2) 55%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: gp-scan 4s linear infinite;
+}
+
+@keyframes gp-scan {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ops-console .panel {
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background-color: var(--ink-2);
+}
+
+.ops-console .mono-num {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
