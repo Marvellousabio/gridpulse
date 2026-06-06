@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.data import seed
+from app.data.nodes_seed import CLUSTERS, NODES_SEED
 
 STATION_ID_TO_MAP: dict[str, int] = {
     "ST-01": 1,
@@ -38,6 +39,32 @@ class AppState:
         self.agent_actions: list[dict[str, Any]] = []
         self.onchain_ledger: list[dict[str, Any]] = []
         self.agent_cycles_run = 0
+        self.grid_nodes: list[dict[str, Any]] = copy.deepcopy(NODES_SEED)
+        self.failed_cluster: str | None = None
+        self.rebalance_runs: dict[str, dict[str, Any]] = {}
+        self.v1_settlements: list[dict[str, Any]] = [
+            {
+                "intentId": "INT-SEED-001",
+                "payer": "OP-FRANCHISE-008",
+                "payee": "OP-FRANCHISE-033",
+                "kwhEq": 18.4,
+                "status": "CLEARED",
+                "proofRef": "0xseedproof8f2a9c1d4e7b3a6f0c5d8e2a1b4c7d9",
+                "clearedAt": datetime.now(timezone.utc).isoformat(),
+            }
+        ]
+        self.clean_energy_records: list[dict[str, Any]] = [
+            {
+                "recordId": "CER-SEED-001",
+                "nodeId": "GP-LAG-LEK-007",
+                "kwhEq": 12.5,
+                "cleanFractionPct": 74,
+                "source": "GRID",
+                "settledAt": datetime.now(timezone.utc).isoformat(),
+                "proofRef": "0xseedclean4a2f8c9d1e3b5a7c0d2e4f6a8b0c2d4",
+            }
+        ]
+        self.last_checkpoint: str = datetime.now(timezone.utc).isoformat()
         self._log_id_counter = len(self.terminal_logs) + 1
         self._action_id_counter = 1
         self._ledger_id_counter = 1
@@ -143,6 +170,158 @@ class AppState:
                 queue.put_nowait(payload)
             except asyncio.QueueFull:
                 pass
+
+    async def list_grid_nodes(self) -> list[dict[str, Any]]:
+        async with self._lock:
+            now = datetime.now(timezone.utc).isoformat()
+            return [{**copy.deepcopy(n), "updatedAt": now} for n in self.grid_nodes]
+
+    async def get_grid_node(self, node_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            for node in self.grid_nodes:
+                if node["node"]["nodeId"] == node_id:
+                    return {**copy.deepcopy(node), "updatedAt": datetime.now(timezone.utc).isoformat()}
+        return None
+
+    async def cluster_availability(self) -> list[dict[str, Any]]:
+        async with self._lock:
+            rows = []
+            for cluster_id in CLUSTERS:
+                cluster_nodes = [n for n in self.grid_nodes if n["node"]["geo"]["cluster"] == cluster_id]
+                grid_available = (
+                    False
+                    if self.failed_cluster == cluster_id
+                    else all(n["node"]["powerSource"]["gridAvailable"] for n in cluster_nodes)
+                )
+                by_chemistry = {"LITHIUM_SWAP": 0.0, "HYDROGEN_HUB": 0.0}
+                available = 0.0
+                for node in cluster_nodes:
+                    available += float(node["availableKwhEq"])
+                    by_chemistry[node["node"]["assetClass"]] += float(node["availableKwhEq"])
+                rows.append(
+                    {
+                        "clusterId": cluster_id,
+                        "gridAvailable": grid_available,
+                        "nodes": len(cluster_nodes),
+                        "availableKwhEq": round(available),
+                        "byChemistry": {
+                            "LITHIUM_SWAP": round(by_chemistry["LITHIUM_SWAP"]),
+                            "HYDROGEN_HUB": round(by_chemistry["HYDROGEN_HUB"]),
+                        },
+                    }
+                )
+            return rows
+
+    async def cluster_nodes_for_rebalance(self, cluster_id: str) -> list[dict[str, Any]]:
+        async with self._lock:
+            return copy.deepcopy(
+                [n for n in self.grid_nodes if n["node"]["geo"]["cluster"] == cluster_id]
+            )
+
+    async def mark_cluster_grid_failure(self, cluster_id: str) -> None:
+        async with self._lock:
+            self.failed_cluster = cluster_id
+            for node in self.grid_nodes:
+                if node["node"]["geo"]["cluster"] != cluster_id:
+                    continue
+                if node["node"]["assetClass"] == "LITHIUM_SWAP":
+                    node["node"]["powerSource"]["gridAvailable"] = False
+                    node["node"]["powerSource"]["currentSource"] = "SOLAR_PV"
+                    node["availableKwhEq"] = min(node["availableKwhEq"], 14)
+                    node["health"]["lastFault"] = "GRID_OUTAGE"
+
+    async def create_rebalance_run(self, run_id: str, cluster_id: str) -> None:
+        async with self._lock:
+            self.rebalance_runs[run_id] = {
+                "cluster_id": cluster_id,
+                "started_at": datetime.now(timezone.utc).timestamp(),
+                "started_iso": datetime.now(timezone.utc).isoformat(),
+                "final": None,
+                "applied": False,
+            }
+
+    async def set_rebalance_final(self, run_id: str, final: dict[str, Any]) -> None:
+        async with self._lock:
+            if run_id in self.rebalance_runs:
+                self.rebalance_runs[run_id]["final"] = copy.deepcopy(final)
+
+    async def get_rebalance_run(self, run_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            run = self.rebalance_runs.get(run_id)
+            return copy.deepcopy(run) if run else None
+
+    async def mark_rebalance_applied(self, run_id: str) -> None:
+        async with self._lock:
+            if run_id in self.rebalance_runs:
+                self.rebalance_runs[run_id]["applied"] = True
+
+    async def apply_rebalance_outcome(self, final: dict[str, Any]) -> None:
+        async with self._lock:
+            cluster_id = final["trigger"]["clusterId"]
+            self.failed_cluster = cluster_id
+            for node in self.grid_nodes:
+                if node["node"]["geo"]["cluster"] != cluster_id:
+                    continue
+                if node["node"]["assetClass"] == "LITHIUM_SWAP":
+                    node["node"]["powerSource"]["gridAvailable"] = False
+                    node["node"]["powerSource"]["currentSource"] = "SOLAR_PV"
+                    node["availableKwhEq"] = 14
+                else:
+                    node["availableKwhEq"] = max(80, float(node["availableKwhEq"]) - 25)
+
+            for intent in final.get("settlement", {}).get("intents", []):
+                self.v1_settlements.insert(0, copy.deepcopy(intent))
+
+            reroute = (final.get("decision", {}).get("reroutes") or [{}])[0]
+            h2_node = reroute.get("toNode", "GP-LAG-IKJ-022")
+            intent = (final.get("settlement", {}).get("intents") or [{}])[0]
+            self.clean_energy_records.insert(
+                0,
+                {
+                    "recordId": f"CER-{final['runId'][:8]}",
+                    "nodeId": h2_node,
+                    "kwhEq": intent.get("kwhEq", 25.2),
+                    "cleanFractionPct": 88,
+                    "source": "SOLAR_PV",
+                    "settledAt": datetime.now(timezone.utc).isoformat(),
+                    "proofRef": intent.get("proofRef", ""),
+                },
+            )
+
+    async def list_v1_settlements(self) -> list[dict[str, Any]]:
+        async with self._lock:
+            return copy.deepcopy(self.v1_settlements)
+
+    async def list_clean_energy(self) -> list[dict[str, Any]]:
+        async with self._lock:
+            return copy.deepcopy(self.clean_energy_records)
+
+    async def set_last_checkpoint(self, ts: str) -> None:
+        async with self._lock:
+            self.last_checkpoint = ts
+
+    async def ingest_telemetry_v1(self, payload: dict[str, Any]) -> dict[str, Any]:
+        async with self._lock:
+            node_id = payload.get("nodeId") or payload.get("node", {}).get("nodeId")
+            if not node_id:
+                raise ValueError("nodeId required")
+            for node in self.grid_nodes:
+                if node["node"]["nodeId"] != node_id:
+                    continue
+                if "availableKwhEq" in payload:
+                    node["availableKwhEq"] = float(payload["availableKwhEq"])
+                ps = payload.get("powerSource")
+                if ps:
+                    node["node"]["powerSource"].update(ps)
+                node["updatedAt"] = datetime.now(timezone.utc).isoformat()
+                return {"accepted": True, "nodeId": node_id, "messageId": payload.get("messageId")}
+            raise ValueError(f"Unknown node {node_id}")
+
+    async def append_v1_settlement(self, intent: dict[str, Any]) -> dict[str, Any]:
+        async with self._lock:
+            stored = copy.deepcopy(intent)
+            self.v1_settlements.insert(0, stored)
+            return stored
 
 
 app_state = AppState()

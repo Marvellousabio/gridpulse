@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routes import agent, dashboard, demo, health
+from app.routes import agent, dashboard, demo, health, v1
 from app.services.agent import run_balancer_cycle
 from app.services.telemetry import apply_telemetry_snapshot, telemetry_needs_agent
 
@@ -51,6 +51,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     app.include_router(health.router)
+    app.include_router(v1.router)
     app.include_router(dashboard.router)
     app.include_router(agent.router)
     app.include_router(demo.router)
