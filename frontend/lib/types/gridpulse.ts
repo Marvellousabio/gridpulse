@@ -93,6 +93,14 @@ export interface RebalanceState {
 
 export type SettlementStatus = 'PENDING_PROOF' | 'PROOF_VERIFIED' | 'CLEARED' | 'DISPUTED';
 
+export interface GridPulseHealth {
+  ok: boolean;
+  lastCheckpoint: string;
+  cencoriEnabled?: boolean;
+  elizaM2mAgents?: number;
+  service?: string;
+}
+
 export interface SettlementIntent {
   intentId?: string;
   payer: string;
@@ -101,6 +109,15 @@ export interface SettlementIntent {
   status: SettlementStatus;
   proofRef?: string;
   clearedAt?: string;
+  verifiedAt?: string;
+  payerAgentId?: string;
+  payeeAgentId?: string;
+  payerWallet?: string;
+  payeeWallet?: string;
+  amountNgn?: number;
+  txHash?: string;
+  protocol?: string;
+  settlementRail?: string;
 }
 
 export interface CleanEnergyRecord {

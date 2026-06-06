@@ -1,6 +1,7 @@
 import type {
   CleanEnergyRecord,
   ClusterAvailability,
+  GridPulseHealth,
   NodeState,
   RebalanceState,
   SettlementIntent,
@@ -15,10 +16,11 @@ export interface GridPulseApi {
   getRebalance(runId: string): Promise<RebalanceState>;
   listSettlements(): Promise<SettlementIntent[]>;
   getCleanEnergy(params?: { from?: string; to?: string }): Promise<CleanEnergyRecord[]>;
-  health(): Promise<{ ok: boolean; lastCheckpoint: string }>;
+  health(): Promise<GridPulseHealth>;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL;
 
 export const isLiveApi = Boolean(API_BASE);
 

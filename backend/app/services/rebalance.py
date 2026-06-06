@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.data.nodes_seed import GRAPH_PHASES
-from app.services.claude import analyze_cluster_rebalance, claude_enabled
+from app.services.claude import analyze_cluster_rebalance
+from app.services.cencori_ai import cencori_enabled
+from app.services.eliza_settlement import clear_intent, enrich_intent, verify_intent
 from app.services.state import app_state
 
 PHASE_MS = 700
@@ -89,7 +91,7 @@ def _build_final_state(cluster_id: str, run_id: str, decision: dict[str, Any], n
     li_load = min(99, round(100 - lithium["availableKwhEq"] / 0.6))
     h2_load = min(99, round(100 - hydrogen["availableKwhEq"] / 1.2))
 
-    agent_label = "gridpulse-balancer-claude" if claude_enabled() else "gridpulse-balancer-langgraph"
+    agent_label = "gridpulse-balancer-cencori" if cencori_enabled() else "gridpulse-balancer-langgraph"
 
     return {
         "runId": run_id,
@@ -129,7 +131,7 @@ def _build_final_state(cluster_id: str, run_id: str, decision: dict[str, Any], n
         "forecast": {
             "depletionHorizonMin": decision["depletionHorizonMin"],
             "demandSpikeFactor": decision["demandSpikeFactor"],
-            "model": "claude-sonnet-rebalance" if claude_enabled() else "gridpulse-forecast-v1",
+            "model": "cencori-rebalance" if cencori_enabled() else "gridpulse-forecast-v1",
         },
         "decision": {
             "reroutes": [
@@ -149,15 +151,16 @@ def _build_final_state(cluster_id: str, run_id: str, decision: dict[str, Any], n
         },
         "settlement": {
             "intents": [
-                {
-                    "intentId": f"INT-{run_id[:8]}",
-                    "payer": decision.get("sourceOperator", lithium["node"]["operatorId"]),
-                    "payee": decision.get("targetOperator", hydrogen["node"]["operatorId"]),
-                    "kwhEq": decision["kwhEqSettlement"],
-                    "status": "CLEARED",
-                    "proofRef": decision.get("proofRef", _telemetry_proof_hash(cluster_id, nodes)),
-                    "clearedAt": _iso_now(),
-                }
+                enrich_intent(
+                    {
+                        "intentId": f"INT-{run_id[:8]}",
+                        "payer": decision.get("sourceOperator", lithium["node"]["operatorId"]),
+                        "payee": decision.get("targetOperator", hydrogen["node"]["operatorId"]),
+                        "kwhEq": decision["kwhEqSettlement"],
+                        "status": "PENDING_PROOF",
+                        "proofRef": decision.get("proofRef", _telemetry_proof_hash(cluster_id, nodes)),
+                    }
+                )
             ]
         },
         "audit": {
@@ -240,7 +243,7 @@ async def get_rebalance_state(run_id: str) -> dict[str, Any]:
             "decision": {"reroutes": [], "loadShifts": [], "humanApprovalRequired": False},
             "settlement": {"intents": []},
             "audit": {
-                "agent": "gridpulse-balancer-claude" if claude_enabled() else "gridpulse-balancer-langgraph",
+                "agent": "gridpulse-balancer-cencori" if cencori_enabled() else "gridpulse-balancer-langgraph",
                 "reasoningTrace": ["ASSESS: Ingesting cluster telemetry and invoking reasoning engine..."],
                 "checkpoint": f"DDB#REBAL#{run_id[:12]}",
             },
@@ -254,19 +257,43 @@ async def get_rebalance_state(run_id: str) -> dict[str, Any]:
     rerouted = phase in ("REROUTE", "SETTLE", "DONE")
 
     if phase == "DONE" and elapsed >= PHASE_MS * (len(GRAPH_PHASES) - 1) and not run.get("applied"):
-        await app_state.apply_rebalance_outcome(final)
+        cleared_final = copy.deepcopy(final)
+        cleared_intents = []
+        for intent in final["settlement"]["intents"]:
+            row = enrich_intent(copy.deepcopy(intent))
+            try:
+                row = verify_intent(row, cluster_id, nodes)
+                row = clear_intent(row)
+            except ValueError:
+                row["status"] = "DISPUTED"
+            cleared_intents.append(row)
+        cleared_final["settlement"] = {"intents": cleared_intents}
+        await app_state.set_rebalance_final(run_id, cleared_final)
+        await app_state.apply_rebalance_outcome(cleared_final)
         await app_state.mark_rebalance_applied(run_id)
+        final = cleared_final
 
     intents = []
+    cluster_id = final["trigger"]["clusterId"]
+    nodes = await app_state.cluster_nodes_for_rebalance(cluster_id)
     for intent in final["settlement"]["intents"]:
-        row = copy.deepcopy(intent)
+        row = enrich_intent(copy.deepcopy(intent))
         if phase == "DONE":
-            row["status"] = "CLEARED"
+            try:
+                if row.get("status") != "PROOF_VERIFIED":
+                    row = verify_intent(row, cluster_id, nodes)
+                row = clear_intent(row)
+            except ValueError:
+                row["status"] = "DISPUTED"
         elif phase == "SETTLE":
-            row["status"] = "PROOF_VERIFIED"
+            try:
+                row = verify_intent(row, cluster_id, nodes)
+            except ValueError:
+                row["status"] = "PENDING_PROOF"
         else:
             row["status"] = "PENDING_PROOF"
             row.pop("clearedAt", None)
+            row.pop("txHash", None)
             if phase not in ("SETTLE", "DONE"):
                 row.pop("proofRef", None)
         intents.append(row)

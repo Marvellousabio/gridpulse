@@ -7,11 +7,13 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 5000
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
-    cencori_api_url: str = ""
     cencori_api_key: str = ""
+    cencori_model: str = "claude-sonnet-4.5"
+    cencori_agent_id: str = ""
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
-    claude_reasoning: bool = True
+    ai_reasoning: bool = True
+    claude_reasoning: bool = True  # legacy alias for ai_reasoning
     telemetry_interval_seconds: int = 5
     auto_agent_cycles: bool = True
     api_base_url: str = "http://localhost:5000"

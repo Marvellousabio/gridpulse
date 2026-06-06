@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routes import agent, dashboard, demo, health, v1
+from app.routes import agent, cencori, dashboard, demo, health, v1
 from app.services.agent import run_balancer_cycle
 from app.services.telemetry import apply_telemetry_snapshot, telemetry_needs_agent
 
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(v1.router)
+    app.include_router(cencori.router)
     app.include_router(dashboard.router)
     app.include_router(agent.router)
     app.include_router(demo.router)

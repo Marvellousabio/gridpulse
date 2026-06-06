@@ -7,6 +7,7 @@ from typing import Any
 
 from app.data import seed
 from app.data.nodes_seed import CLUSTERS, NODES_SEED
+from app.services.eliza_settlement import enrich_intent
 
 STATION_ID_TO_MAP: dict[str, int] = {
     "ST-01": 1,
@@ -43,15 +44,18 @@ class AppState:
         self.failed_cluster: str | None = None
         self.rebalance_runs: dict[str, dict[str, Any]] = {}
         self.v1_settlements: list[dict[str, Any]] = [
-            {
-                "intentId": "INT-SEED-001",
-                "payer": "OP-FRANCHISE-008",
-                "payee": "OP-FRANCHISE-033",
-                "kwhEq": 18.4,
-                "status": "CLEARED",
-                "proofRef": "0xseedproof8f2a9c1d4e7b3a6f0c5d8e2a1b4c7d9",
-                "clearedAt": datetime.now(timezone.utc).isoformat(),
-            }
+            enrich_intent(
+                {
+                    "intentId": "INT-SEED-001",
+                    "payer": "OP-FRANCHISE-008",
+                    "payee": "OP-FRANCHISE-033",
+                    "kwhEq": 18.4,
+                    "status": "CLEARED",
+                    "proofRef": "0xseedproof8f2a9c1d4e7b3a6f0c5d8e2a1b4c7d9",
+                    "clearedAt": datetime.now(timezone.utc).isoformat(),
+                    "txHash": "0xseedelizatx9f2a8c1d4e7b3a6f0c5d8e2a1b4c7d9e0f1a2",
+                }
+            )
         ]
         self.clean_energy_records: list[dict[str, Any]] = [
             {
@@ -319,9 +323,25 @@ class AppState:
 
     async def append_v1_settlement(self, intent: dict[str, Any]) -> dict[str, Any]:
         async with self._lock:
-            stored = copy.deepcopy(intent)
+            stored = copy.deepcopy(enrich_intent(intent))
             self.v1_settlements.insert(0, stored)
             return stored
+
+    async def get_v1_settlement(self, intent_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            for intent in self.v1_settlements:
+                if intent.get("intentId") == intent_id:
+                    return copy.deepcopy(intent)
+        return None
+
+    async def update_v1_settlement(self, intent_id: str, intent: dict[str, Any]) -> dict[str, Any]:
+        async with self._lock:
+            for idx, row in enumerate(self.v1_settlements):
+                if row.get("intentId") == intent_id:
+                    self.v1_settlements[idx] = copy.deepcopy(intent)
+                    return copy.deepcopy(intent)
+            self.v1_settlements.insert(0, copy.deepcopy(intent))
+            return copy.deepcopy(intent)
 
 
 app_state = AppState()

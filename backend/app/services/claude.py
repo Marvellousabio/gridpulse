@@ -1,55 +1,27 @@
-"""Claude API — cluster rebalance reasoning (FORECAST + ALLOCATE + audit trace)."""
+"""Legacy import path — rebalance reasoning now routes through Cencori when configured."""
 
 from __future__ import annotations
 
 import json
 import logging
-import re
 from typing import Any
 
 import httpx
 
 from app.config import settings
+from app.services.cencori_ai import analyze_cluster_rebalance as analyze_via_cencori
+from app.services.cencori_ai import cencori_enabled
 
 logger = logging.getLogger("gridpulse.claude")
 
 SYSTEM_PROMPT = """You are GridPulse Balancer, an autonomous energy orchestrator for Lagos EV fleets.
-You analyze cluster telemetry where Li-ion swap cabinets and hydrogen canister hubs are normalized to kWh-equivalent.
-
-Respond with ONLY valid JSON (no markdown fences) matching this schema:
-{
-  "depletionHorizonMin": number,
-  "demandSpikeFactor": number,
-  "confidence": number between 0 and 1,
-  "vehiclesToReroute": integer,
-  "targetNodeId": "node id string",
-  "crossChemistry": boolean,
-  "loadShiftNodeId": "node id or null",
-  "loadShiftSource": "SOLAR_PV" | "DIESEL_GENSET" | "GRID" | null,
-  "humanApprovalRequired": boolean,
-  "kwhEqSettlement": number,
-  "reasoningTrace": ["ASSESS: ...", "FORECAST: ...", "ALLOCATE: ...", "REROUTE: ...", "SETTLE: ..."]
-}
-
-Rules:
-- Prefer routing dual-power okada fleets to H2 hubs when Li-ion is grid-stressed and H2 has surplus kWh-eq.
-- humanApprovalRequired only if kwhEqSettlement > 50 or vehiclesToReroute > 20.
-- reasoningTrace must have exactly 5 lines, each prefixed with the phase name.
+Respond with ONLY valid JSON matching the rebalance decision schema. No markdown fences.
 """
 
 
 def claude_enabled() -> bool:
-    return bool(settings.claude_reasoning and settings.anthropic_api_key)
-
-
-def _extract_json(text: str) -> dict[str, Any]:
-    text = text.strip()
-    if text.startswith("{"):
-        return json.loads(text)
-    match = re.search(r"\{[\s\S]*\}", text)
-    if not match:
-        raise ValueError("No JSON object in Claude response")
-    return json.loads(match.group())
+    """True when any AI reasoning backend is configured (Cencori preferred)."""
+    return cencori_enabled() or bool(settings.ai_reasoning and settings.anthropic_api_key)
 
 
 async def analyze_cluster_rebalance(
@@ -57,10 +29,12 @@ async def analyze_cluster_rebalance(
     nodes: list[dict[str, Any]],
     fleet_context: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """
-    Call Anthropic Messages API. Returns parsed decision dict or None on failure.
-    """
-    if not claude_enabled():
+    if cencori_enabled():
+        result = await analyze_via_cencori(cluster_id, nodes, fleet_context)
+        if result:
+            return result
+
+    if not settings.ai_reasoning or not settings.anthropic_api_key:
         return None
 
     user_payload = {
@@ -87,11 +61,7 @@ async def analyze_cluster_rebalance(
         "messages": [
             {
                 "role": "user",
-                "content": (
-                    "Analyze this Lagos cluster telemetry after a grid failure. "
-                    "Recommend cross-chemistry reroute if appropriate.\n\n"
-                    + json.dumps(user_payload, indent=2)
-                ),
+                "content": json.dumps(user_payload, indent=2),
             }
         ],
     }
@@ -111,9 +81,12 @@ async def analyze_cluster_rebalance(
             data = response.json()
             blocks = data.get("content") or []
             text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-            parsed = _extract_json(text)
-            logger.info("Claude rebalance decision for %s: %s vehicles", cluster_id, parsed.get("vehiclesToReroute"))
-            return parsed
+            import re
+
+            match = re.search(r"\{[\s\S]*\}", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group())
     except Exception as exc:
-        logger.warning("Claude API unavailable, using rule fallback: %s", exc)
+        logger.warning("Anthropic fallback unavailable: %s", exc)
         return None

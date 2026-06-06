@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Activity, Atom, Coins, LayoutDashboard, Leaf, Menu, Radio, X } from 'lucide-react';
 import { LiveClock } from '@/components/ops/LiveClock';
+import { SystemStatusBar } from '@/components/ops/SystemStatusBar';
 import { isLiveApi } from '@/lib/gridpulse/api';
 import { useState } from 'react';
 
@@ -99,7 +100,10 @@ export function OpsShell({ children }: { children: React.ReactNode }) {
               ))}
             </div>
           </div>
-          <LiveClock />
+          <div className="flex items-center gap-4">
+            <SystemStatusBar />
+            <LiveClock />
+          </div>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
       </div>

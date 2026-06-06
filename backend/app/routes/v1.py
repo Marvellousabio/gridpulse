@@ -7,7 +7,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.services.claude import claude_enabled
+from app.services.cencori_ai import cencori_enabled
+from app.services.eliza_settlement import clear_intent, enrich_intent, list_agent_registry, verify_intent
 from app.services.rebalance import get_rebalance_state, trigger_rebalance
 from app.services.state import app_state
 
@@ -37,7 +38,9 @@ async def v1_health():
     return {
         "ok": True,
         "lastCheckpoint": await app_state.snapshot("last_checkpoint"),
-        "claudeEnabled": claude_enabled(),
+        "cencoriEnabled": cencori_enabled(),
+        "claudeEnabled": cencori_enabled(),
+        "elizaM2mAgents": len(list_agent_registry()),
         "service": "gridpulse-api",
     }
 
@@ -118,15 +121,49 @@ async def list_settlements():
 
 @router.post("/settlements/intent")
 async def create_settlement_intent(body: SettlementIntentRequest):
-    intent = {
-        "intentId": f"INT-{body.payer[-3:]}-{body.payee[-3:]}",
-        "payer": body.payer,
-        "payee": body.payee,
-        "kwhEq": body.kwhEq,
-        "status": "PENDING_PROOF",
-        "proofRef": body.proofRef,
-    }
+    intent = enrich_intent(
+        {
+            "intentId": f"INT-{body.payer[-3:]}-{body.payee[-3:]}",
+            "payer": body.payer,
+            "payee": body.payee,
+            "kwhEq": body.kwhEq,
+            "status": "PENDING_PROOF",
+            "proofRef": body.proofRef,
+        }
+    )
     return await app_state.append_v1_settlement(intent)
+
+
+@router.get("/settlements/agents")
+async def settlement_agents():
+    return {"agents": list_agent_registry(), "protocol": "elizaOS-m2m"}
+
+
+@router.post("/settlements/intent/{intent_id}/verify")
+async def verify_settlement_intent(intent_id: str, clusterId: str = "Ikeja"):
+    intent = await app_state.get_v1_settlement(intent_id)
+    if intent is None:
+        raise HTTPException(status_code=404, detail=f"Intent {intent_id} not found")
+    nodes = await app_state.cluster_nodes_for_rebalance(clusterId)
+    try:
+        verified = verify_intent(enrich_intent(intent), clusterId, nodes)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    await app_state.update_v1_settlement(intent_id, verified)
+    return verified
+
+
+@router.post("/settlements/intent/{intent_id}/clear")
+async def clear_settlement_intent(intent_id: str):
+    intent = await app_state.get_v1_settlement(intent_id)
+    if intent is None:
+        raise HTTPException(status_code=404, detail=f"Intent {intent_id} not found")
+    try:
+        cleared = clear_intent(intent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    await app_state.update_v1_settlement(intent_id, cleared)
+    return cleared
 
 
 @router.get("/ledger/clean-energy")

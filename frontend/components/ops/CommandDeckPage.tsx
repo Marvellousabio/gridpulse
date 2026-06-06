@@ -10,14 +10,20 @@ export function CommandDeckPage() {
   const api = useMemo(() => getGridPulseApi(), []);
   const [clusters, setClusters] = useState<ClusterAvailability[]>([]);
   const [nodes, setNodes] = useState<NodeState[]>([]);
+  const [pendingSettlements, setPendingSettlements] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [c, n] = await Promise.all([api.getClusterAvailability(), api.listNodes()]);
+      const [c, n, settlements] = await Promise.all([
+        api.getClusterAvailability(),
+        api.listNodes(),
+        api.listSettlements(),
+      ]);
       if (!cancelled) {
         setClusters(c);
         setNodes(n);
+        setPendingSettlements(settlements.filter((s) => s.status === 'PENDING_PROOF').length);
       }
     };
     load();
@@ -47,7 +53,7 @@ export function CommandDeckPage() {
         <Stat label="kWh-eq available" value={totalKwh} />
         <Stat label="Nodes online" value={online} decimals={0} />
         <Stat label="Clean fraction" value={68} suffix="%" />
-        <Stat label="Pending settlements" value={2} decimals={0} />
+        <Stat label="Pending settlements" value={pendingSettlements} decimals={0} />
       </div>
 
       <div className="panel p-3">

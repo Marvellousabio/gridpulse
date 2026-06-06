@@ -9,7 +9,7 @@ Use this before demo day. Mark items as you complete them.
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 1 | **Live backend `/v1/*` API** | 🟡 Built | Set `NEXT_PUBLIC_API_BASE=http://localhost:5000` in `frontend/.env.local` |
-| 2 | **Claude API reasoning** | 🟡 Built | Set `ANTHROPIC_API_KEY` in `backend/.env` — powers FORECAST + ALLOCATE + audit trace |
+| 2 | **Claude API reasoning** | ✅ | Prefer **`CENCORI_API_KEY`** (official gateway); Anthropic direct as fallback |
 | 3 | **Orchestration demo on live API** | ⬜ Test | Command Deck → Orchestration → Simulate Grid Failure with backend running |
 | 4 | **Public deploy (Render/Railway/Fly)** | ⬜ You | Backend URL judges can hit — DevOps or `render.yaml` |
 | 5 | **Demo script rehearsed (90s)** | ⬜ You | Problem → Command Deck → Orchestration → Settlement → Carbon |
@@ -38,7 +38,7 @@ Use this before demo day. Mark items as you complete them.
 | 14 | DynamoDB single-table schema | 📄 SOW | Checkpoint IDs in audit trace |
 | 15 | Step Functions orchestration | 📄 SOW | LangGraph maps to state machine |
 | 16 | elizaOS M2M settlement | 📄 Roadmap | Proof ref + ledger export ready for wiring |
-| 17 | Cencori gateway hook | ✅ | `CENCORI_API_URL` optional passthrough |
+| 17 | Cencori gateway integration | ✅ | Official SDK (Next.js) + OpenAI-compatible backend routes |
 | 18 | Excalidraw architecture board | ⬜ You | Attach to repo or slide deck |
 
 ---
@@ -49,7 +49,7 @@ Use this before demo day. Mark items as you complete them.
 |---|------|--------|-------|
 | 19 | `AUTO_AGENT_CYCLES=false` during staged demo | ⬜ | Avoid background agent fighting your scripted trigger |
 | 20 | Seed settlements + carbon records on backend | 🟡 | `/v1/settlements`, `/v1/ledger/clean-energy` |
-| 21 | Health endpoint shows Claude status | 🟡 | `/v1/health` → `claudeEnabled`, `lastCheckpoint` |
+| 21 | Health endpoint shows Cencori status | ✅ | `/v1/health` → `cencoriEnabled`, `lastCheckpoint` |
 | 22 | Screen recording backup | ⬜ You | If live demo network fails |
 | 23 | Remove stale root docs | ⬜ | `DELIVERY_SUMMARY.md`, `START_HERE.md` clutter |
 
@@ -60,9 +60,9 @@ Use this before demo day. Mark items as you complete them.
 ### Backend (`backend/.env`)
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
-CLAUDE_REASONING=true
+CENCORI_API_KEY=csk_...
+CENCORI_MODEL=claude-sonnet-4.5
+AI_REASONING=true
 AUTO_AGENT_CYCLES=false
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
@@ -70,6 +70,8 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ### Frontend (`frontend/.env.local`)
 
 ```env
+CENCORI_API_KEY=csk_...
+CENCORI_MODEL=claude-sonnet-4.5
 NEXT_PUBLIC_API_BASE=http://localhost:5000
 ```
 

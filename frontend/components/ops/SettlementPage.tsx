@@ -32,6 +32,7 @@ export function SettlementPage() {
 
   const cleared = intents.filter((i) => i.status === 'CLEARED');
   const pending = intents.filter((i) => i.status === 'PENDING_PROOF');
+  const verified = intents.filter((i) => i.status === 'PROOF_VERIFIED');
   const disputed = intents.filter((i) => i.status === 'DISPUTED');
   const clearedKwh = cleared.reduce((s, i) => s + i.kwhEq, 0);
 
@@ -40,13 +41,14 @@ export function SettlementPage() {
       <div>
         <h1 className="text-2xl font-black">Settlement Ledger</h1>
         <p className="text-text-soft text-sm font-serif italic mt-1">
-          Proof-gated M2M clearing — no CLEARED without hardware proof
+          elizaOS M2M clearing — VERIFY_PAYMENT → SETTLE_JOB, proof-gated
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Total label="Cleared kWh-eq" value={clearedKwh.toFixed(1)} />
         <Total label="Pending proof" value={String(pending.length)} />
+        <Total label="Verified" value={String(verified.length)} />
         <Total label="Disputed" value={String(disputed.length)} />
       </div>
 
@@ -56,9 +58,10 @@ export function SettlementPage() {
             <tr>
               <th className="p-3">Proof gate</th>
               <th className="p-3">Payer → Payee</th>
+              <th className="p-3">Agents</th>
               <th className="p-3 mono-num">kWh-eq</th>
               <th className="p-3">Status</th>
-              <th className="p-3 mono-num">proofRef</th>
+              <th className="p-3 mono-num">txHash</th>
             </tr>
           </thead>
           <tbody>
@@ -74,14 +77,21 @@ export function SettlementPage() {
                 <td className="p-3 mono-num text-xs">
                   {i.payer} → {i.payee}
                 </td>
+                <td className="p-3 text-xs text-text-soft max-w-[140px]">
+                  <div className="truncate">{i.payerAgentId ?? '—'}</div>
+                  <div className="truncate text-hydrogen">{i.payeeAgentId ?? '—'}</div>
+                </td>
                 <td className="p-3 mono-num">{i.kwhEq}</td>
                 <td className="p-3">
                   <span className={`text-xs px-2 py-0.5 rounded border mono-num ${STATUS_STYLE[i.status]}`}>
                     {i.status}
                   </span>
+                  {i.amountNgn != null && (
+                    <p className="text-[10px] text-text-soft mono-num mt-1">₦{i.amountNgn.toLocaleString()}</p>
+                  )}
                 </td>
                 <td className="p-3 mono-num text-xs text-text-soft max-w-[200px] truncate">
-                  {i.proofRef ?? '—'}
+                  {i.txHash ?? i.proofRef ?? '—'}
                 </td>
               </tr>
             ))}
