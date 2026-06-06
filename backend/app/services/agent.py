@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import uuid
 from datetime import datetime, timezone
@@ -9,6 +10,8 @@ from langgraph.graph import END, StateGraph
 
 from app.services.gateway import route_agent_payload
 from app.services.state import app_state
+
+_agent_lock = asyncio.Lock()
 
 
 class BalancerState(TypedDict):
@@ -39,8 +42,8 @@ def evaluate_state(state: BalancerState) -> BalancerState:
         soc = station.get("solar_soc_pct") or 0
         if grid_down:
             alerts.append(
-                f"Grid outage at {station['station_id']} ({station['location']}): "
-                f"solar SOC {soc}%, {batteries} batteries remaining"
+                f"Grid outage detected at {station['location']} Hub ({station['station_id']}). "
+                f"Backup solar at {soc}% SOC, {batteries} lithium packs remaining"
             )
         elif batteries <= 3:
             alerts.append(
@@ -53,11 +56,14 @@ def evaluate_state(state: BalancerState) -> BalancerState:
 def resolve_routing(state: BalancerState) -> BalancerState:
     actions: list[dict[str, Any]] = []
     lithium_stressed = [
-        s for s in state["telemetry"]
-        if s["type"] == "Lithium_Swap" and (not s.get("grid_active") or (s.get("available_batteries") or 0) <= 3)
+        s
+        for s in state["telemetry"]
+        if s["type"] == "Lithium_Swap"
+        and (not s.get("grid_active") or (s.get("available_batteries") or 0) <= 3)
     ]
     h2_surplus = [
-        s for s in state["telemetry"]
+        s
+        for s in state["telemetry"]
         if s["type"] == "H2_Canister" and (s.get("available_canisters") or 0) >= 5
     ]
 
@@ -75,8 +81,9 @@ def resolve_routing(state: BalancerState) -> BalancerState:
                 "vehicles_rerouted": rerouted,
                 "kwh_equivalent": round(rerouted * 1.8, 2),
                 "message": (
-                    f"Autonomously rerouted {rerouted} dual-power vehicles to {target['station_id']}. "
-                    f"Preserved {preserved} pure-BEV lithium packs at {source['station_id']}."
+                    f"Autonomously rerouted {rerouted} dual-power vehicles to "
+                    f"{target['station_id']} ({target['location']}). "
+                    f"Saved {preserved} pure-BEV lithium packs at {source['station_id']}."
                 ),
             }
         )
@@ -92,7 +99,7 @@ def execute_actions(state: BalancerState) -> BalancerState:
         terminal_messages.append(
             {
                 "timestamp": _now(),
-                "message": f"🚨 Alert: {alert}. Initiating cross-asset load balancing.",
+                "message": f"Alert: {alert}. Initiating cross-asset load balancing.",
                 "type": "warning",
             }
         )
@@ -101,7 +108,7 @@ def execute_actions(state: BalancerState) -> BalancerState:
         terminal_messages.append(
             {
                 "timestamp": _now(),
-                "message": f"🤖 Action: {action['message']}",
+                "message": f"Action: {action['message']}",
                 "type": "success",
             }
         )
@@ -122,7 +129,7 @@ def execute_actions(state: BalancerState) -> BalancerState:
         terminal_messages.append(
             {
                 "timestamp": _now(),
-                "message": "✅ GridPulse Balancer: all nodes within SLA thresholds.",
+                "message": "GridPulse Balancer: all nodes within SLA thresholds.",
                 "type": "info",
             }
         )
@@ -153,55 +160,56 @@ async def run_balancer_cycle(
 ) -> dict[str, Any]:
     from app.services.telemetry import apply_telemetry_snapshot
 
-    if telemetry is None:
-        telemetry = await apply_telemetry_snapshot(force_scenario)
+    async with _agent_lock:
+        if telemetry is None:
+            telemetry = await apply_telemetry_snapshot(force_scenario)
 
-    cycle_id = str(uuid.uuid4())
-    initial: BalancerState = {
-        "telemetry": telemetry,
-        "alerts": [],
-        "actions": [],
-        "terminal_messages": [],
-        "ledger_entries": [],
-        "cycle_id": cycle_id,
-    }
-
-    routed = await route_agent_payload({"cycle_id": cycle_id, "telemetry": telemetry})
-    if routed.get("telemetry"):
-        initial["telemetry"] = routed["telemetry"]
-
-    result = _balancer.invoke(initial)
-
-    persisted_logs = []
-    for msg in result["terminal_messages"]:
-        persisted_logs.append(await app_state.append_terminal_log(msg["message"], msg["type"]))
-
-    persisted_actions = []
-    for action in result["actions"]:
-        persisted_actions.append(await app_state.append_agent_action(action))
-
-    persisted_ledger = []
-    for entry in result["ledger_entries"]:
-        persisted_ledger.append(await app_state.append_ledger_entry(entry))
-
-    if result["actions"]:
-        settlement = {
-            "id": str(len(app_state.settlements) + 1),
-            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "amount": sum(e["amount_ngn"] for e in persisted_ledger),
-            "status": "completed",
-            "provider": "GridPulse Cross-Asset SLA",
-            "reference": f"TXN-AGENT-{cycle_id[:8].upper()}",
+        cycle_id = str(uuid.uuid4())
+        initial: BalancerState = {
+            "telemetry": telemetry,
+            "alerts": [],
+            "actions": [],
+            "terminal_messages": [],
+            "ledger_entries": [],
+            "cycle_id": cycle_id,
         }
-        app_state.settlements.insert(0, settlement)
 
-    await app_state.increment_agent_cycles()
+        routed = await route_agent_payload({"cycle_id": cycle_id, "telemetry": telemetry})
+        if routed.get("telemetry"):
+            initial["telemetry"] = routed["telemetry"]
 
-    return {
-        "cycle_id": cycle_id,
-        "status": "completed",
-        "alerts": result["alerts"],
-        "actions": persisted_actions,
-        "terminal_logs": persisted_logs,
-        "ledger_entries": persisted_ledger,
-    }
+        result = _balancer.invoke(initial)
+
+        persisted_logs = []
+        for msg in result["terminal_messages"]:
+            persisted_logs.append(await app_state.append_terminal_log(msg["message"], msg["type"]))
+
+        persisted_actions = []
+        for action in result["actions"]:
+            persisted_actions.append(await app_state.append_agent_action(action))
+
+        persisted_ledger = []
+        for entry in result["ledger_entries"]:
+            persisted_ledger.append(await app_state.append_ledger_entry(entry))
+
+        if result["actions"]:
+            await app_state.append_settlement(
+                {
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "amount": sum(e["amount_ngn"] for e in persisted_ledger),
+                    "status": "completed",
+                    "provider": "GridPulse Cross-Asset SLA",
+                    "reference": f"TXN-AGENT-{cycle_id[:8].upper()}",
+                }
+            )
+
+        await app_state.increment_agent_cycles()
+
+        return {
+            "cycle_id": cycle_id,
+            "status": "completed",
+            "alerts": result["alerts"],
+            "actions": persisted_actions,
+            "terminal_logs": persisted_logs,
+            "ledger_entries": persisted_ledger,
+        }

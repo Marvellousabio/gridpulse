@@ -7,6 +7,7 @@ import { DistributionChart } from '@/components/charts/DistributionChart';
 import { InfrastructureMap } from '@/components/infrastructure/InfrastructureMap';
 import { AIAgentTerminal } from '@/components/infrastructure/AIAgentTerminal';
 import { SettlementLedger } from '@/components/ledger/SettlementLedger';
+import { OnChainLedger } from '@/components/ledger/OnChainLedger';
 import { MonitoringMetrics } from '@/components/monitoring/MonitoringMetrics';
 import { TopPerformers } from '@/components/monitoring/TopPerformers';
 import { useEffect, useState } from 'react';
@@ -56,6 +57,10 @@ export default function Page() {
         <div>
           <TopPerformers />
         </div>
+      </div>
+
+      <div className="mb-8">
+        <OnChainLedger />
       </div>
 
       {/* System Metrics */}

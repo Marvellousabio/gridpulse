@@ -1,10 +1,39 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { generateSettlementData } from '@/lib/mockData';
-import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { apiClient } from '@/lib/api';
+import type { SettlementEntry } from '@/lib/types';
+import { CheckCircle, Clock, Wifi, WifiOff } from 'lucide-react';
+
+const POLL_MS = 6000;
 
 export function SettlementLedger() {
-  const settlements = generateSettlementData();
+  const [settlements, setSettlements] = useState<SettlementEntry[]>(generateSettlementData());
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const next = await apiClient.getSettlements();
+        if (!cancelled) {
+          setSettlements(next);
+          setLive(true);
+        }
+      } catch {
+        if (!cancelled) setLive(false);
+      }
+    };
+
+    load();
+    const id = setInterval(load, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -34,11 +63,28 @@ export function SettlementLedger() {
     }
   };
 
+  const formatAmount = (settlement: SettlementEntry) => {
+    if (settlement.provider.includes('GridPulse') || settlement.reference.startsWith('TXN-AGENT')) {
+      return `₦${settlement.amount.toLocaleString()}`;
+    }
+    return `$${settlement.amount.toLocaleString()}`;
+  };
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Settlement Ledger</h3>
-        <p className="text-sm text-gray-500 mt-1">Recent transactions</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Cross-Operator Settlement Ledger</h3>
+          <p className="text-sm text-gray-500 mt-1">B2B fleet billing & SLA settlements</p>
+        </div>
+        <span
+          className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full border ${
+            live ? 'text-green-700 border-green-200 bg-green-50' : 'text-amber-700 border-amber-200 bg-amber-50'
+          }`}
+        >
+          {live ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+          {live ? 'Live' : 'Cached'}
+        </span>
       </div>
 
       <div className="overflow-x-auto">
@@ -57,7 +103,7 @@ export function SettlementLedger() {
               <tr key={settlement.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="py-3 px-4 text-gray-600">{settlement.date}</td>
                 <td className="py-3 px-4 text-gray-900 font-medium">{settlement.provider}</td>
-                <td className="py-3 px-4 text-gray-900 font-semibold">${settlement.amount.toLocaleString()}</td>
+                <td className="py-3 px-4 text-gray-900 font-semibold">{formatAmount(settlement)}</td>
                 <td className="py-3 px-4">{getStatusBadge(settlement.status)}</td>
                 <td className="py-3 px-4 text-gray-500 font-mono text-xs">{settlement.reference}</td>
               </tr>
