@@ -15,12 +15,17 @@ class Settings(BaseSettings):
     ai_reasoning: bool = True
     claude_reasoning: bool = True  # legacy alias for ai_reasoning
     telemetry_interval_seconds: int = 5
-    auto_agent_cycles: bool = True
+    auto_agent_cycles: bool = False
     api_base_url: str = "http://localhost:5000"
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return origins if origins else ["http://localhost:3000"]
+
+    @property
+    def cors_allow_all(self) -> bool:
+        return "*" in self.cors_origin_list
 
 
 settings = Settings()

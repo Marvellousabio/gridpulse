@@ -250,6 +250,8 @@ async def get_rebalance_state(run_id: str) -> dict[str, Any]:
         }
 
     final = copy.deepcopy(run["final"])
+    cluster_id = final["trigger"]["clusterId"]
+    nodes = await app_state.cluster_nodes_for_rebalance(cluster_id)
     trace_count = min(
         len(final["audit"]["reasoningTrace"]),
         max(1, int(elapsed / PHASE_MS)),
@@ -262,8 +264,10 @@ async def get_rebalance_state(run_id: str) -> dict[str, Any]:
         for intent in final["settlement"]["intents"]:
             row = enrich_intent(copy.deepcopy(intent))
             try:
-                row = verify_intent(row, cluster_id, nodes)
-                row = clear_intent(row)
+                if row.get("status") != "CLEARED":
+                    if row.get("status") != "PROOF_VERIFIED":
+                        row = verify_intent(row, cluster_id, nodes)
+                    row = clear_intent(row)
             except ValueError:
                 row["status"] = "DISPUTED"
             cleared_intents.append(row)
@@ -272,12 +276,14 @@ async def get_rebalance_state(run_id: str) -> dict[str, Any]:
         await app_state.apply_rebalance_outcome(cleared_final)
         await app_state.mark_rebalance_applied(run_id)
         final = cleared_final
+        nodes = await app_state.cluster_nodes_for_rebalance(cluster_id)
 
     intents = []
-    cluster_id = final["trigger"]["clusterId"]
-    nodes = await app_state.cluster_nodes_for_rebalance(cluster_id)
     for intent in final["settlement"]["intents"]:
         row = enrich_intent(copy.deepcopy(intent))
+        if row.get("status") == "CLEARED":
+            intents.append(row)
+            continue
         if phase == "DONE":
             try:
                 if row.get("status") != "PROOF_VERIFIED":

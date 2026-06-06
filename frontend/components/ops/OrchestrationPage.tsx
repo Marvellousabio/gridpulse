@@ -15,12 +15,19 @@ export function OrchestrationPage() {
   const [runId, setRunId] = useState<string | null>(null);
   const [state, setState] = useState<RebalanceState | null>(null);
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const poll = useCallback(
     async (id: string) => {
-      const s = await api.getRebalance(id);
-      setState(s);
-      return s;
+      try {
+        const s = await api.getRebalance(id);
+        setState(s);
+        return s;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Rebalance poll failed');
+        setRunning(false);
+        return null;
+      }
     },
     [api],
   );
@@ -30,7 +37,7 @@ export function OrchestrationPage() {
     let cancelled = false;
     const tick = async () => {
       const s = await poll(runId);
-      if (!cancelled && s.graphPhase === 'DONE') setRunning(false);
+      if (!cancelled && s?.graphPhase === 'DONE') setRunning(false);
     };
     tick();
     const id = setInterval(tick, 200);
@@ -43,8 +50,14 @@ export function OrchestrationPage() {
   const trigger = async () => {
     setRunning(true);
     setState(null);
-    const { runId: id } = await api.triggerRebalance(clusterId);
-    setRunId(id);
+    setError(null);
+    try {
+      const { runId: id } = await api.triggerRebalance(clusterId);
+      setRunId(id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start rebalance');
+      setRunning(false);
+    }
   };
 
   const phase = state?.graphPhase ?? 'ASSESS';
@@ -83,6 +96,12 @@ export function OrchestrationPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="panel p-4 border-critical/50 bg-critical/10 text-critical text-sm">
+          {error} — check <code className="mono-num">NEXT_PUBLIC_API_BASE</code> points at your Render URL.
+        </div>
+      )}
 
       {state && (
         <>

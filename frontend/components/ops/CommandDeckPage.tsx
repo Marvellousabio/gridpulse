@@ -15,15 +15,19 @@ export function CommandDeckPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [c, n, settlements] = await Promise.all([
-        api.getClusterAvailability(),
-        api.listNodes(),
-        api.listSettlements(),
-      ]);
-      if (!cancelled) {
-        setClusters(c);
-        setNodes(n);
-        setPendingSettlements(settlements.filter((s) => s.status === 'PENDING_PROOF').length);
+      try {
+        const [c, n, settlements] = await Promise.all([
+          api.getClusterAvailability(),
+          api.listNodes(),
+          api.listSettlements(),
+        ]);
+        if (!cancelled) {
+          setClusters(c);
+          setNodes(n);
+          setPendingSettlements(settlements.filter((s) => s.status === 'PENDING_PROOF').length);
+        }
+      } catch {
+        /* keep last good data — avoid blank deck on transient API blip */
       }
     };
     load();
