@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridPulse API — Statement of Work &amp; Technical Project Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0E14;
+    --ink-2:#10151F;
+    --ink-3:#161D2A;
+    --paper:#F4F3EF;
+    --paper-2:#FBFAF7;
+    --line:#D9D6CC;
+    --line-dk:#243042;
+    --text:#15202E;
+    --text-soft:#4C586A;
+    --text-on-dark:#E7ECF3;
+    --text-on-dark-soft:#9FB0C4;
+    --amber:#F4A52B;     /* lithium */
+    --amber-dk:#C97C12;
+    --cyan:#28CBD6;      /* hydrogen */
+    --cyan-dk:#108B95;
+    --green:#3DBE78;     /* clean / verified */
+    --red:#E5564B;       /* grid critical */
+    --violet:#7C6CF0;    /* agentic */
+    --maxw:1080px;
+    --radius:14px;
+    --shadow:0 18px 50px -22px rgba(8,14,24,.45);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--text);
+    font-family:"Spectral",Georgia,serif;font-size:17.5px;line-height:1.66;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4,h5,.disp{font-family:"Archivo",sans-serif;font-weight:800;letter-spacing:-.01em;color:var(--text)}
+  .mono{font-family:"JetBrains Mono",monospace}
+  a{color:var(--cyan-dk);text-decoration:none;border-bottom:1px solid rgba(16,139,149,.3)}
+  ::selection{background:var(--amber);color:#1a1206}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 34px}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;background:var(--ink);color:var(--text-on-dark);
+    overflow:hidden;padding:74px 0 64px;border-bottom:3px solid var(--amber);
+  }
+  .hero::before{ /* telemetry grid */
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(99,128,160,.08) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(99,128,160,.08) 1px,transparent 1px);
+    background-size:34px 34px;mask-image:radial-gradient(ellipse 80% 70% at 70% 20%,#000 30%,transparent 80%);
+  }
+  .hero::after{ /* glow */
+    content:"";position:absolute;width:620px;height:620px;right:-160px;top:-220px;border-radius:50%;
+    background:radial-gradient(circle,rgba(244,165,43,.20),transparent 62%);pointer-events:none;
+  }
+  .hero .wrap{position:relative;z-index:2}
+  .kicker{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--amber);margin:0 0 18px}
+  .hero h1{font-size:clamp(42px,7vw,82px);line-height:.96;color:#fff;font-weight:900;margin:0 0 8px;letter-spacing:-.025em}
+  .hero h1 .grad{background:linear-gradient(100deg,var(--amber),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .sub{font-family:"Archivo",sans-serif;font-weight:500;font-size:clamp(17px,2.4vw,23px);color:var(--text-on-dark);max-width:760px;margin:18px 0 0;line-height:1.4}
+  .pulse-line{height:46px;margin:26px 0 4px;opacity:.9}
+  .ps-badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:30px}
+  .ps-badge{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line-dk);border-radius:999px;padding:8px 15px;color:var(--text-on-dark);background:rgba(255,255,255,.03)}
+  .ps-badge b{color:var(--amber)}
+  .meta-strip{display:flex;flex-wrap:wrap;gap:0;margin-top:38px;border-top:1px solid var(--line-dk)}
+  .meta-strip div{flex:1 1 160px;padding:16px 18px 4px 0;border-right:1px solid var(--line-dk)}
+  .meta-strip div:last-child{border-right:none}
+  .meta-strip .lbl{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-on-dark-soft)}
+  .meta-strip .val{font-family:"Archivo",sans-serif;font-weight:700;font-size:15px;color:#fff;margin-top:3px}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:62px 0;border-bottom:1px solid var(--line)}
+  .sec-head{display:flex;gap:18px;align-items:baseline;margin-bottom:10px}
+  .sec-num{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:#fff;background:var(--ink);border-radius:8px;padding:6px 10px;letter-spacing:.06em;flex:none;transform:translateY(-3px)}
+  h2.sec-title{font-size:clamp(27px,4.2vw,40px);margin:0;line-height:1.04}
+  .sec-deck{color:var(--text-soft);font-style:italic;font-size:18px;max-width:760px;margin:6px 0 30px}
+  p{margin:0 0 18px}
+  .lead{font-size:20px;line-height:1.6}
+  strong{font-weight:600;color:#0c1a13}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;padding:2px 7px;border-radius:5px;background:#E9E6DC;color:#3a4351;border:1px solid var(--line)}
+
+  /* dark feature band */
+  .band{background:var(--ink);color:var(--text-on-dark);border-bottom:1px solid var(--line-dk);position:relative;overflow:hidden}
+  .band::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 12% 0%,rgba(40,203,214,.10),transparent 40%),radial-gradient(circle at 88% 100%,rgba(244,165,43,.10),transparent 40%);pointer-events:none}
+  .band h2.sec-title,.band h3,.band h4{color:#fff}
+  .band .sec-deck{color:var(--text-on-dark-soft)}
+  .band p{color:var(--text-on-dark)}
+  .band .sec-num{background:#fff;color:var(--ink)}
+  .band strong{color:#fff}
+
+  /* ---------- STAT STRIP ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:6px 0 8px}
+  .stat{background:var(--paper-2);padding:24px 20px}
+  .stat .n{font-family:"Archivo",sans-serif;font-weight:900;font-size:34px;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+  .stat .n .u{font-size:18px;color:var(--amber-dk)}
+  .stat .c{font-size:14.5px;color:var(--text-soft);margin-top:9px;line-height:1.4;font-family:"Archivo",sans-serif;font-weight:500}
+  .stat .src{font-family:"JetBrains Mono",monospace;font-size:10px;color:#97a0ad;margin-top:7px}
+
+  /* ---------- CARDS ---------- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:8px 0}
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+  .band .card{background:var(--ink-2);border-color:var(--line-dk);box-shadow:none}
+  .card .ic{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;font-family:"Archivo";font-weight:800;color:#1a1206;margin-bottom:14px}
+  .card h4{font-size:18px;margin:0 0 8px}
+  .card p{font-size:15.5px;line-height:1.55;margin:0;color:var(--text-soft)}
+  .band .card p{color:var(--text-on-dark-soft)}
+
+  /* ---------- MATRIX TABLE ---------- */
+  .matrix{width:100%;border-collapse:collapse;margin:8px 0;font-size:15.5px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .matrix th{font-family:"Archivo";font-weight:700;text-align:left;background:var(--ink);color:#fff;padding:15px 16px;font-size:13.5px;letter-spacing:.02em;vertical-align:top}
+  .matrix td{padding:16px;border-top:1px solid var(--line);vertical-align:top;background:var(--paper-2)}
+  .matrix tr td:first-child{width:24%;font-family:"Archivo";font-weight:600;color:var(--ink)}
+  .psdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
+  .ps1{background:var(--cyan)} .ps6{background:var(--amber)} .ps9{background:var(--red)}
+
+  table.spec{width:100%;border-collapse:collapse;font-size:14.5px;margin:6px 0;border:1px solid var(--line)}
+  table.spec th{background:#ECE9DF;text-align:left;padding:11px 14px;font-family:"Archivo";font-weight:700;font-size:13px;border-bottom:1px solid var(--line)}
+  table.spec td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:top}
+  table.spec td:first-child{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--cyan-dk);white-space:nowrap}
+
+  /* ---------- CODE ---------- */
+  .code{background:#0C1119;border:1px solid var(--line-dk);border-radius:12px;overflow:hidden;margin:10px 0 6px;box-shadow:var(--shadow)}
+  .code .bar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#0E1622;border-bottom:1px solid var(--line-dk)}
+  .code .bar .d{width:11px;height:11px;border-radius:50%}
+  .code .bar .t{font-family:"JetBrains Mono",monospace;font-size:12px;color:#8FA2B8;margin-left:8px}
+  .code pre{margin:0;padding:20px 22px;overflow-x:auto;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.62;color:#CBD6E4}
+  .code .k{color:#7CC7FF}.code .s{color:#9DE6A4}.code .n{color:#F4A52B}.code .c{color:#5E7088;font-style:italic}.code .b{color:#E68CF0}
+
+  /* ---------- DIAGRAM FRAME ---------- */
+  .figure{margin:18px 0 6px}
+  .figure svg{width:100%;height:auto;display:block;border:1px solid var(--line-dk);border-radius:14px;background:#0B1019}
+  .figcap{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--text-soft);margin-top:12px;padding-left:14px;border-left:3px solid var(--amber)}
+  .band .figcap{color:var(--text-on-dark-soft)}
+
+  /* ---------- TWO COL ---------- */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .scope{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .scope .hd{padding:14px 18px;font-family:"Archivo";font-weight:800;font-size:15px;color:#fff;display:flex;align-items:center;gap:10px}
+  .scope.in .hd{background:var(--green)}
+  .scope.out .hd{background:#6B7686}
+  .scope ul{margin:0;padding:18px 20px 18px 38px;background:var(--paper-2)}
+  .scope li{margin-bottom:11px;font-size:15.5px}
+  .scope li b{font-family:"Archivo";font-weight:600}
+
+  /* ---------- TIMELINE ---------- */
+  .phase{display:grid;grid-template-columns:96px 1fr;gap:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;background:var(--paper-2)}
+  .phase .hh{background:var(--ink);color:#fff;padding:18px 14px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+  .phase .hh .ph{font-family:"JetBrains Mono";font-size:10px;letter-spacing:.18em;color:var(--amber);text-transform:uppercase}
+  .phase .hh .hr{font-family:"Archivo";font-weight:900;font-size:21px;line-height:1;margin-top:4px}
+  .phase .bd{padding:16px 20px}
+  .phase .bd h4{margin:0 0 5px;font-size:17px}
+  .phase .bd p{margin:0;font-size:15px;color:var(--text-soft)}
+  .phase .bd .del{margin-top:9px;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:"JetBrains Mono";font-size:11px;background:#ECE9DF;border:1px solid var(--line);border-radius:6px;padding:3px 8px;color:#3a4351}
+
+  /* ---------- SUCCESS METRICS ---------- */
+  .metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .metric{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--paper-2);display:flex;gap:16px;align-items:flex-start}
+  .metric .big{font-family:"Archivo";font-weight:900;font-size:30px;color:var(--cyan-dk);line-height:1;flex:none}
+  .metric h4{margin:0 0 4px;font-size:16px}
+  .metric p{margin:0;font-size:14.5px;color:var(--text-soft)}
+
+  /* ---------- RISK ---------- */
+  .risk{width:100%;border-collapse:collapse;font-size:15px;border:1px solid var(--line)}
+  .risk th{background:var(--ink);color:#fff;text-align:left;padding:13px 15px;font-family:"Archivo";font-weight:700;font-size:13px}
+  .risk td{padding:14px 15px;border-top:1px solid var(--line);vertical-align:top;background:var(--paper-2)}
+  .sev{font-family:"JetBrains Mono";font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap}
+  .sev.h{background:#FBE2DF;color:#B0322A;border:1px solid #F0B7B1}
+  .sev.m{background:#FCEFD6;color:#9A6A14;border:1px solid #F2D89B}
+  .sev.l{background:#DDF1E5;color:#1E7A4C;border:1px solid #B3DEC6}
+
+  /* ---------- CALLOUT ---------- */
+  .callout{border-left:4px solid var(--amber);background:linear-gradient(90deg,rgba(244,165,43,.08),transparent);padding:18px 22px;border-radius:0 12px 12px 0;margin:10px 0}
+  .callout.cy{border-color:var(--cyan);background:linear-gradient(90deg,rgba(40,203,214,.09),transparent)}
+  .callout.vt{border-color:var(--violet);background:linear-gradient(90deg,rgba(124,108,240,.10),transparent)}
+  .band .callout{background:linear-gradient(90deg,rgba(244,165,43,.14),transparent)}
+
+  /* ---------- NOVELTY ---------- */
+  .nov{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:12px}
+  .nov .n{background:var(--ink-2);border:1px solid var(--line-dk);border-radius:var(--radius);padding:24px;position:relative}
+  .nov .n .num{font-family:"Archivo";font-weight:900;font-size:46px;line-height:1;background:linear-gradient(120deg,var(--amber),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .nov .n h4{font-size:18px;margin:0 0 8px;color:#fff}
+  .nov .n p{font-size:14.5px;color:var(--text-on-dark-soft);margin:0}
+
+  /* ---------- REFERENCES ---------- */
+  .refs{counter-reset:r;font-size:14.5px;line-height:1.5}
+  .refs li{list-style:none;padding:13px 0 13px 46px;border-bottom:1px solid var(--line);position:relative}
+  .refs li::before{counter-increment:r;content:"["counter(r)"]";position:absolute;left:0;top:13px;font-family:"JetBrains Mono";font-weight:700;font-size:13px;color:var(--amber-dk)}
+  .refs b{font-family:"Archivo";font-weight:600;color:var(--ink)}
+  .refs .meta{color:var(--text-soft);font-style:italic}
+  .refs a{font-family:"JetBrains Mono";font-size:12px;word-break:break-all}
+  sup.c{font-family:"JetBrains Mono";font-size:11px;color:var(--cyan-dk);font-weight:700;border:none}
+
+  /* footer */
+  .foot{background:var(--ink);color:var(--text-on-dark-soft);padding:42px 0;font-size:13.5px}
+  .foot .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;align-items:center}
+  .foot b{color:#fff;font-family:"Archivo"}
+
+  @media(max-width:820px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .cards,.nov{grid-template-columns:1fr}
+    .two,.metrics{grid-template-columns:1fr}
+    .meta-strip div{flex:1 1 46%;border-right:none}
+    .wrap{padding:0 20px}
+  }
+  @media print{
+    body{font-size:11pt}
+    .hero,.band,.foot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    section{padding:24px 0;break-inside:avoid}
+    .figure,.code,.phase,.card,.matrix,.risk{break-inside:avoid}
+    .hero{padding:34px 0}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">Statement of Work &amp; Technical Project Report · Arthurite × AWS "One with AI"</p>
+    <h1>GridPulse <span class="grad">API</span></h1>
+    <p class="sub">The Autonomous Multi-Source EV Energy Orchestrator — an API-first middleware layer that turns Nigeria's volatile, fragmented physical energy infrastructure into a single, software-defined, self-healing network.</p>
+
+    <svg class="pulse-line" viewBox="0 0 1000 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="0,30 180,30 210,30 230,8 250,52 270,18 290,42 310,30 520,30 545,30 565,12 585,48 605,30 1000,30"
+        fill="none" stroke="url(#pg)" stroke-width="2.5"/>
+      <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#F4A52B"/><stop offset="1" stop-color="#28CBD6"/></linearGradient></defs>
+    </svg>
+
+    <div class="ps-badges">
+      <span class="ps-badge"><b>PS-1</b> · National EV Charging Intelligence Layer</span>
+      <span class="ps-badge"><b>PS-6</b> · Battery-Swapping Demand Prediction</span>
+      <span class="ps-badge"><b>PS-9</b> · Unpredictable Electricity / Multi-Source Management</span>
+    </div>
+
+    <div class="meta-strip">
+      <div><div class="lbl">Document</div><div class="val">SOW v1.0 — Technical Report</div></div>
+      <div><div class="lbl">Classification</div><div class="val">B2B Infrastructure Layer</div></div>
+      <div><div class="lbl">Build Window</div><div class="val">24-Hour Hackathon Sprint</div></div>
+      <div><div class="lbl">Prepared by</div><div class="val">dd · GridPulse Labs</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= 0. ABSTRACT / EXEC SUMMARY ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">01</span><h2 class="sec-title">Executive Summary</h2></div>
+    <p class="sec-deck">A software-defined energy network for a market where the energy itself is the bottleneck.</p>
+
+    <p class="lead">Nigeria's transition away from petrol is no longer aspirational — it is being forced by economics. The 2023 removal of the fuel subsidy stripped away an estimated ₦4–5 trillion in annual under-recovery and reshaped the cost structure of every commercial rider, logistics fleet, and ride-hail operator in Lagos<sup class="c">[11]</sup>. Electric two- and three-wheelers are the natural beneficiary, yet the constraint has simply moved one layer down the stack: <strong>the vehicles are ready, but the energy under them is not.</strong></p>
+
+    <p>The physical energy layer that powers electric mobility in Lagos is volatile and fragmented. The national grid is intermittent; operators independently bolt on solar PV and diesel gensets as fallback<sup class="c">[6]</sup>; battery-swap cabinets and a nascent class of off-grid hydrogen canister hubs run as isolated islands with no shared visibility, no demand forecasting, and no way to settle energy between competitors. The result is the worst of both worlds: <strong>empty stations next to congested ones</strong>, stranded fleets during grid outages, and capital locked in assets that cannot be shared.</p>
+
+    <p><strong>GridPulse API</strong> is the middleware that resolves this. It is an API-first energy orchestration layer that abstracts heterogeneous physical assets — standard Lithium-Ion swap cabinets and pressurized hydrogen canister hubs — into one unified, polymorphic state model on AWS. A stateful multi-agent system built on <strong>LangGraph</strong> and orchestrated through <strong>Cencori</strong> continuously forecasts depletion, rebalances load across energy sources, and — critically — <strong>autonomously reroutes mixed EV fleets across operators and across chemistries when a localized grid failure is detected, without waiting for a human</strong>. An <strong>elizaOS</strong>-based machine-to-machine settlement ledger clears the resulting cross-operator energy debts cryptographically, against verifiable IoT hardware proof, and maintains an immutable record of clean-energy consumption in kWh/MJ-equivalent terms.</p>
+
+    <div class="callout">
+      <p style="margin:0"><strong>The thesis in one line:</strong> GridPulse turns energy from <em>an asset each operator owns and hoards</em> into <em>a service the network routes</em> — across incompatible chemistries, across competing operators, autonomously, and with cryptographic settlement that makes sharing safe.</p>
+    </div>
+
+    <p><strong>Value proposition.</strong> For <strong>B2B fleet operators</strong>, GridPulse converts unpredictable downtime into a guaranteed-availability SLA. For <strong>third-party infrastructure franchise owners</strong>, it turns an idle swap cabinet or hydrogen hub into a revenue-generating node in a shared, settled marketplace. For <strong>institutional clean-energy investors</strong>, the immutable kWh/MJ ledger produces auditable, machine-verifiable evidence suitable for carbon-credit issuance and green-bond use-of-proceeds reporting — collateral that fragmented, paper-based operators cannot currently produce.</p>
+  </div>
+</section>
+
+<!-- ================= STAT STRIP ================= -->
+<section style="padding-top:46px;padding-bottom:46px">
+  <div class="wrap">
+    <div class="sec-head" style="margin-bottom:18px"><span class="sec-num">★</span><h2 class="sec-title" style="font-size:24px">The Lagos Reality, in Numbers</h2></div>
+    <div class="stats">
+      <div class="stat"><div class="n">~0.5<span class="u">%</span></div><div class="c">of Nigeria's vehicles are electric — an estimated 15k–20k units, dominated by motorcycles &amp; tricycles</div><div class="src">SRC [8]</div></div>
+      <div class="stat"><div class="n">₦6.5<span class="u">tn</span></div><div class="c">potential annual fuel-import savings by 2040 from EV adoption</div><div class="src">SRC [7]</div></div>
+      <div class="stat"><div class="n">60<span class="u">%</span></div><div class="c">EV adoption target by 2050 under Nigeria's Energy Transition Plan; 100% EV sales by 2040</div><div class="src">SRC [12]</div></div>
+      <div class="stat"><div class="n">~100<span class="u">M</span></div><div class="c">motorcycles projected across Africa by 2030 — ~70% used as commercial taxis</div><div class="src">SRC [14,16]</div></div>
+    </div>
+    <p style="font-size:14px;color:var(--text-soft);margin-top:18px;font-style:italic">Figures are drawn from cited public sources and reflect the market GridPulse is built for: a high-volume, two- and three-wheeler EV economy where the binding constraint is reliable, shareable, well-routed energy — not vehicles.</p>
+  </div>
+</section>
+
+<!-- ================= 2. PROBLEM ALIGNMENT MATRIX ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">02</span><h2 class="sec-title">Problem Alignment Matrix</h2></div>
+    <p class="sec-deck">Direct, line-by-line mapping of GridPulse capabilities to the three hackathon problem statements.</p>
+
+    <table class="matrix">
+      <thead><tr>
+        <th>Problem Statement</th>
+        <th>The Lagos Failure Mode</th>
+        <th>The GridPulse Mechanism</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="psdot ps1"></span>PS-1 — No Charging Intelligence Layer</td>
+          <td>Operators (battery-swap, solar hub, hydrogen) run as disconnected islands. No national view of where energy is, what it costs, or whether a node is alive. Charging infrastructure remains sparse and uncoordinated<sup class="c">[9]</sup>.</td>
+          <td>GridPulse is the unified aggregation &amp; visibility plane. Every node — regardless of operator or chemistry — streams a normalized telemetry envelope into one queryable state model, exposing a single national availability API across all assets.</td>
+        </tr>
+        <tr>
+          <td><span class="psdot ps6"></span>PS-6 — Battery-Swap Demand Imbalance</td>
+          <td>Riders arrive at empty cabinets while neighbouring stations sit full. Demand is spiky, commute-driven, and unforecast — producing stock-outs and idle inventory simultaneously.</td>
+          <td>The LangGraph forecasting agent predicts per-cluster depletion ahead of the spike and pre-positions inventory and reroutes fleets <em>before</em> stock-out, shifting the system from reactive to predictive. Demand is modelled per cluster, not per station.</td>
+        </tr>
+        <tr>
+          <td><span class="psdot ps9"></span>PS-9 — Grid Unreliability / Multi-Source</td>
+          <td>Grid drops without warning; each operator independently and manually flips to solar or diesel<sup class="c">[6]</sup>. A grid failure in one cluster strands every fleet that depends on it.</td>
+          <td>On a detected grid-failure event, the agentic loop autonomously orchestrates the source shift (grid → solar → hydrogen reserve) <em>and</em> reroutes affected fleets to healthy cross-chemistry nodes — turning a local outage into a contained, self-healing event.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout cy">
+      <p style="margin:0"><strong>Why all three at once:</strong> these are not three problems — they are one problem viewed from three angles. You cannot predict swap demand (PS-6) without a unified data layer (PS-1), and that prediction is worthless if a grid failure (PS-9) can strand the fleet anyway. GridPulse is deliberately architected as the single control plane that the three problem statements collectively describe.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. ARCHITECTURE (DARK BAND) ================= -->
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">03</span><h2 class="sec-title">System &amp; Agentic Architecture</h2></div>
+    <p class="sec-deck">Built as a deliberate extension of AWS's own published EV-charging reference architecture — not a reinvention of it.</p>
+
+    <p>AWS publishes a canonical reference architecture for EV charging management: device telemetry over MQTT/OCPP into <strong>AWS IoT Core</strong>, processed by <strong>AWS Lambda</strong>, with state, the asset registry, balancing configuration and grid-capacity parameters held in <strong>Amazon DynamoDB</strong>, transaction workflows orchestrated by <strong>AWS Step Functions</strong>, and an immutable, cryptographically verifiable transaction log in Amazon QLDB<sup class="c">[18,19]</sup>. GridPulse adopts this spine verbatim, then adds the three layers the reference design does not contain: a <strong>chemistry-agnostic abstraction</strong>, an <strong>autonomous agentic brain</strong>, and a <strong>cross-operator settlement ledger</strong>.</p>
+
+    <!-- DIAGRAM 1 -->
+    <div class="figure">
+      <svg viewBox="0 0 1000 470" xmlns="http://www.w3.org/2000/svg" font-family="Archivo, sans-serif">
+        <defs>
+          <linearGradient id="hb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4A52B"/><stop offset="1" stop-color="#C97C12"/></linearGradient>
+          <linearGradient id="cb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#28CBD6"/><stop offset="1" stop-color="#108B95"/></linearGradient>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7e93ad"/></marker>
+        </defs>
+        <!-- column headers -->
+        <g font-size="11" fill="#7e93ad" font-family="JetBrains Mono, monospace">
+          <text x="95" y="28" text-anchor="middle">EDGE · POLYMORPHIC ASSETS</text>
+          <text x="340" y="28" text-anchor="middle">AWS INGESTION &amp; STATE</text>
+          <text x="620" y="28" text-anchor="middle">AGENTIC ORCHESTRATION</text>
+          <text x="880" y="28" text-anchor="middle">SETTLEMENT &amp; CONSUMERS</text>
+        </g>
+        <!-- EDGE nodes -->
+        <g>
+          <rect x="20" y="60" width="150" height="74" rx="10" fill="#161D2A" stroke="url(#hb)" stroke-width="2"/>
+          <text x="95" y="88" text-anchor="middle" fill="#F4A52B" font-weight="800" font-size="13">Li-Ion Swap Cabinet</text>
+          <text x="95" y="108" text-anchor="middle" fill="#9FB0C4" font-size="10.5" font-family="JetBrains Mono, monospace">SOC · SOH · V · °C</text>
+          <text x="95" y="124" text-anchor="middle" fill="#9FB0C4" font-size="10.5" font-family="JetBrains Mono, monospace">16 bays · cycles</text>
+
+          <rect x="20" y="150" width="150" height="74" rx="10" fill="#161D2A" stroke="url(#cb)" stroke-width="2"/>
+          <text x="95" y="178" text-anchor="middle" fill="#28CBD6" font-weight="800" font-size="13">H₂ Canister Hub</text>
+          <text x="95" y="198" text-anchor="middle" fill="#9FB0C4" font-size="10.5" font-family="JetBrains Mono, monospace">PSI · flow · purity</text>
+          <text x="95" y="214" text-anchor="middle" fill="#9FB0C4" font-size="10.5" font-family="JetBrains Mono, monospace">leak ppm · °C</text>
+
+          <rect x="20" y="240" width="150" height="58" rx="10" fill="#11151c" stroke="#3DBE78" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="95" y="265" text-anchor="middle" fill="#3DBE78" font-weight="700" font-size="12">Power Source Mux</text>
+          <text x="95" y="284" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">grid / solar / genset</text>
+        </g>
+        <!-- INGEST -->
+        <g>
+          <rect x="240" y="70" width="200" height="50" rx="9" fill="#0f1722" stroke="#F4A52B" stroke-width="1.5"/>
+          <text x="340" y="92" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">AWS IoT Core</text>
+          <text x="340" y="109" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">MQTT · rules · device certs</text>
+
+          <rect x="240" y="135" width="200" height="50" rx="9" fill="#0f1722" stroke="#F4A52B" stroke-width="1.5"/>
+          <text x="340" y="157" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">AWS Lambda</text>
+          <text x="340" y="174" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">normalize · validate · enrich</text>
+
+          <rect x="240" y="200" width="200" height="58" rx="9" fill="#0f1722" stroke="#28CBD6" stroke-width="1.5"/>
+          <text x="340" y="224" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">Amazon DynamoDB</text>
+          <text x="340" y="241" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">polymorphic single-table state</text>
+
+          <rect x="240" y="273" width="200" height="46" rx="9" fill="#0f1722" stroke="#28CBD6" stroke-width="1.2"/>
+          <text x="340" y="293" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">Step Functions</text>
+          <text x="340" y="309" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">durable workflow orchestration</text>
+        </g>
+        <!-- AGENTIC -->
+        <g>
+          <rect x="500" y="78" width="240" height="170" rx="12" fill="#13101f" stroke="#7C6CF0" stroke-width="2"/>
+          <text x="620" y="103" text-anchor="middle" fill="#b3a7ff" font-weight="800" font-size="14">LangGraph + Cencori Loop</text>
+          <g font-size="11" font-family="JetBrains Mono, monospace">
+            <rect x="520" y="118" width="200" height="22" rx="5" fill="#1c1733" stroke="#7C6CF0" stroke-width=".8"/><text x="620" y="133" text-anchor="middle" fill="#d8d2ff">ASSESS → FORECAST</text>
+            <rect x="520" y="146" width="200" height="22" rx="5" fill="#1c1733" stroke="#7C6CF0" stroke-width=".8"/><text x="620" y="161" text-anchor="middle" fill="#d8d2ff">ALLOCATE → REROUTE</text>
+            <rect x="520" y="174" width="200" height="22" rx="5" fill="#1c1733" stroke="#7C6CF0" stroke-width=".8"/><text x="620" y="189" text-anchor="middle" fill="#d8d2ff">SETTLE → CHECKPOINT</text>
+          </g>
+          <text x="620" y="222" text-anchor="middle" fill="#9FB0C4" font-size="10">stateful · checkpointed in DynamoDB</text>
+          <text x="620" y="238" text-anchor="middle" fill="#9FB0C4" font-size="10">human gate only on threshold breach</text>
+        </g>
+        <!-- SETTLEMENT -->
+        <g>
+          <rect x="800" y="78" width="180" height="74" rx="10" fill="#0f1722" stroke="#3DBE78" stroke-width="1.8"/>
+          <text x="890" y="104" text-anchor="middle" fill="#3DBE78" font-weight="800" font-size="13">elizaOS Ledger</text>
+          <text x="890" y="123" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">M2M wallets · kWh/MJ</text>
+          <text x="890" y="139" text-anchor="middle" fill="#9FB0C4" font-size="10" font-family="JetBrains Mono, monospace">immutable proof log</text>
+
+          <rect x="800" y="168" width="180" height="50" rx="10" fill="#0f1722" stroke="#28CBD6" stroke-width="1.4"/>
+          <text x="890" y="190" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">GridPulse REST API</text>
+          <text x="890" y="207" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">fleets · franchises · investors</text>
+
+          <rect x="800" y="234" width="180" height="44" rx="10" fill="#11151c" stroke="#F4A52B" stroke-width="1.2"/>
+          <text x="890" y="254" text-anchor="middle" fill="#F4A52B" font-weight="700" font-size="11.5">Carbon / Green-Bond</text>
+          <text x="890" y="270" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">MRV attestation export</text>
+        </g>
+        <!-- arrows -->
+        <g stroke="#7e93ad" stroke-width="1.6" fill="none">
+          <path d="M170,97 C205,97 205,95 238,95" marker-end="url(#ar)"/>
+          <path d="M170,187 C205,160 205,160 238,160" marker-end="url(#ar)"/>
+          <path d="M170,269 C200,300 210,296 238,296" marker-end="url(#ar)"/>
+          <path d="M340,120 L340,133" marker-end="url(#ar)"/>
+          <path d="M340,185 L340,198" marker-end="url(#ar)"/>
+          <path d="M440,229 C470,200 478,170 498,165" marker-end="url(#ar)"/>
+          <path d="M440,295 C465,295 470,300 498,210" marker-end="url(#ar)" stroke-dasharray="4 3"/>
+          <path d="M740,120 C770,115 772,112 798,112" marker-end="url(#ar)"/>
+          <path d="M740,190 C768,192 770,192 798,192" marker-end="url(#ar)"/>
+          <path d="M620,248 C620,300 470,290 442,290" marker-end="url(#ar)" stroke-dasharray="3 3"/>
+        </g>
+        <!-- legend -->
+        <g font-size="10.5" font-family="JetBrains Mono, monospace">
+          <rect x="20" y="430" width="12" height="12" rx="3" fill="#F4A52B"/><text x="38" y="440" fill="#9FB0C4">Lithium path</text>
+          <rect x="140" y="430" width="12" height="12" rx="3" fill="#28CBD6"/><text x="158" y="440" fill="#9FB0C4">Hydrogen path</text>
+          <rect x="280" y="430" width="12" height="12" rx="3" fill="#7C6CF0"/><text x="298" y="440" fill="#9FB0C4">Agentic control</text>
+          <rect x="430" y="430" width="12" height="12" rx="3" fill="#3DBE78"/><text x="448" y="440" fill="#9FB0C4">Clean-energy settlement</text>
+        </g>
+      </svg>
+      <div class="figcap">FIG 1 — GridPulse macro-architecture. Heterogeneous edge assets normalize into one DynamoDB state model; the LangGraph/Cencori loop reads state, decides, and writes reroute + settlement intents back through Step Functions; elizaOS clears value and emits MRV-grade attestations.</div>
+    </div>
+
+    <h3 style="font-size:20px;margin-top:34px">3.1 — The Telemetry Ingestion Layer</h3>
+    <p>The core engineering problem at the edge is <strong>polymorphism</strong>: a lithium swap cabinet reports state-of-charge, state-of-health, pack voltage, cell temperature and cycle count; a hydrogen hub reports tank pressure (PSI), mass flow rate, gas purity, leak concentration and compressor duty cycle. These are physically incommensurable signals. GridPulse resolves this with a <strong>discriminated-union telemetry envelope</strong>: a shared outer schema (identity, geo, power source, signature) wraps a chemistry-specific <span class="tag">metrics</span> block selected by an <span class="tag">assetClass</span> discriminator. Devices publish over MQTT to AWS IoT Core; an IoT Rule routes the payload to a Lambda normalizer that validates the device certificate, converts both chemistries into a common <strong>kWh-equivalent energy unit</strong>, and writes to DynamoDB. This is the same IoT Core → Lambda → DynamoDB ingestion path AWS has stress-tested at ~25 million messages/day and 50× current load on a comparable EV platform<sup class="c">[19]</sup> — meaning GridPulse inherits proven scale characteristics from day one.</p>
+
+    <h3 style="font-size:20px;margin-top:30px">3.2 — The LangGraph + Cencori Orchestration Engine</h3>
+    <p>The orchestration engine is a <strong>stateful graph</strong>, not a stateless rules table. Cencori manages the lifecycle and concurrency of LangGraph runs; LangGraph holds the run state as a typed object that is mutated as it passes between nodes and checkpointed to DynamoDB at every transition, so a run survives a Lambda timeout or cold start. A canonical autonomous cycle on a <strong>localized grid failure</strong> proceeds as follows:</p>
+    <div class="figure">
+      <svg viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg" font-family="Archivo, sans-serif">
+        <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#b3a7ff"/></marker></defs>
+        <g>
+          <!-- nodes -->
+          <g>
+            <rect x="14" y="70" width="150" height="60" rx="10" fill="#1c1733" stroke="#7C6CF0" stroke-width="1.6"/>
+            <text x="89" y="94" text-anchor="middle" fill="#fff" font-weight="800" font-size="13">ASSESS</text>
+            <text x="89" y="114" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">grid-fail event · scope cluster</text>
+          </g>
+          <g>
+            <rect x="200" y="70" width="150" height="60" rx="10" fill="#1c1733" stroke="#7C6CF0" stroke-width="1.6"/>
+            <text x="275" y="94" text-anchor="middle" fill="#fff" font-weight="800" font-size="13">FORECAST</text>
+            <text x="275" y="114" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">depletion horizon · spike factor</text>
+          </g>
+          <g>
+            <rect x="386" y="70" width="150" height="60" rx="10" fill="#1c1733" stroke="#7C6CF0" stroke-width="1.6"/>
+            <text x="461" y="94" text-anchor="middle" fill="#fff" font-weight="800" font-size="13">ALLOCATE</text>
+            <text x="461" y="114" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">match fleet ↔ cross-chem node</text>
+          </g>
+          <g>
+            <rect x="572" y="70" width="150" height="60" rx="10" fill="#1c1733" stroke="#7C6CF0" stroke-width="1.6"/>
+            <text x="647" y="94" text-anchor="middle" fill="#fff" font-weight="800" font-size="13">REROUTE</text>
+            <text x="647" y="114" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">emit fleet + source-shift cmds</text>
+          </g>
+          <g>
+            <rect x="758" y="70" width="150" height="60" rx="10" fill="#13261c" stroke="#3DBE78" stroke-width="1.6"/>
+            <text x="833" y="94" text-anchor="middle" fill="#fff" font-weight="800" font-size="13">SETTLE</text>
+            <text x="833" y="114" text-anchor="middle" fill="#9FB0C4" font-size="9.5" font-family="JetBrains Mono, monospace">cross-operator energy debt</text>
+          </g>
+          <!-- checkpoint -->
+          <rect x="930" y="78" width="56" height="44" rx="9" fill="#0f1722" stroke="#28CBD6" stroke-width="1.4"/>
+          <text x="958" y="98" text-anchor="middle" fill="#28CBD6" font-size="9" font-family="JetBrains Mono, monospace">CKPT</text>
+          <text x="958" y="112" text-anchor="middle" fill="#9FB0C4" font-size="8" font-family="JetBrains Mono, monospace">DDB</text>
+        </g>
+        <g stroke="#b3a7ff" stroke-width="1.8" fill="none" marker-end="url(#ar2)">
+          <path d="M164,100 L198,100"/><path d="M350,100 L384,100"/><path d="M536,100 L570,100"/><path d="M722,100 L756,100"/><path d="M908,100 L928,100"/>
+        </g>
+        <!-- human gate -->
+        <path d="M461,130 C461,165 461,165 461,170" stroke="#F4A52B" stroke-width="1.4" stroke-dasharray="3 3" fill="none"/>
+        <rect x="386" y="170" width="150" height="24" rx="6" fill="#221a0c" stroke="#F4A52B" stroke-width="1"/>
+        <text x="461" y="186" text-anchor="middle" fill="#F4A52B" font-size="10" font-family="JetBrains Mono, monospace">human gate · if &gt; threshold</text>
+        <text x="89" y="40" text-anchor="middle" fill="#7e93ad" font-size="11" font-family="JetBrains Mono, monospace">trigger</text>
+      </svg>
+      <div class="figcap">FIG 2 — The autonomous rebalancing loop. The agent crosses chemistry boundaries when allocating (a stranded lithium fleet can be rerouted to a hydrogen hub measured in shared kWh-equivalent), and only escalates to a human when a reroute volume or settlement value crosses a configured safety threshold.</div>
+    </div>
+    <p>The decisive design choice is that <strong>ALLOCATE is chemistry-blind</strong>. Because both asset classes are reduced to a common kWh-equivalent, the agent can route a depleted lithium fleet to a hydrogen hub if that is the nearest viable energy — something impossible in any single-operator, single-chemistry system. Human intervention is not required for the loop to close; a configurable gate intercepts only decisions whose blast radius (reroute volume or settlement value) exceeds policy, satisfying PS-9's "without human intervention" requirement while preserving an auditable safety boundary.</p>
+
+    <h3 style="font-size:20px;margin-top:30px">3.3 — The elizaOS Tokenized Settlement Ledger</h3>
+    <p>Cross-operator routing creates an immediate economic problem: if Operator A's fleet draws energy from Operator B's hub, B must be paid — automatically, instantly, and without trusting A. GridPulse's settlement layer uses <strong>elizaOS native wallets</strong> to give each node and fleet an autonomous machine identity capable of holding value and signing transactions. Settlement is <strong>proof-gated</strong>: a payment intent is only cleared when the underlying energy delivery is corroborated by signed IoT hardware telemetry from the dispensing node (the verifiable PSI drop or pack-discharge that physically occurred). This is the same trust pattern AWS encodes with Amazon QLDB's cryptographically verifiable transaction log<sup class="c">[18]</sup> — GridPulse externalizes it onto an inter-operator ledger so that <em>competing</em> businesses can transact. Every cleared settlement also writes an immutable kWh/MJ clean-energy record, which becomes the raw material for carbon and green-bond verification (§6).</p>
+
+    <div class="callout vt">
+      <p style="margin:0"><strong>[ARCHITECTURE DIAGRAM HOLDER]</strong> — Figures 1–3 render the system, agentic loop, and settlement flow as production infographics. The companion hand-drawn Excalidraw architecture board (delivered alongside this report) is the version intended for the live pitch and can be exported as PNG/SVG and dropped in here for the slide deck.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. SOW / SCOPE ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">04</span><h2 class="sec-title">Statement of Work &amp; Technical Scope</h2></div>
+    <p class="sec-deck">Exact operational boundaries of the MVP delivered inside the 24-hour sprint.</p>
+
+    <div class="two" style="margin-bottom:26px">
+      <div class="scope in">
+        <div class="hd">▲ IN SCOPE — What we built</div>
+        <ul>
+          <li><b>Polymorphic telemetry simulator</b> — a Python generator emitting realistic lithium <em>and</em> hydrogen node payloads (including injected grid-failure events) to AWS IoT Core.</li>
+          <li><b>Ingestion + normalization Lambda</b> — validates, converts both chemistries to kWh-equivalent, and persists to the DynamoDB polymorphic state model.</li>
+          <li><b>Cencori-managed LangGraph routing loop</b> — the ASSESS→FORECAST→ALLOCATE→REROUTE→SETTLE cycle with DynamoDB checkpointing and the human-gate threshold.</li>
+          <li><b>Stateful DynamoDB single-table schema</b> — nodes, operators, rebalancing runs and settlement intents in one queryable model with a cluster-availability GSI.</li>
+          <li><b>elizaOS settlement ledger prototype</b> — proof-gated M2M settlement intents and an immutable clean-energy ledger export endpoint.</li>
+          <li><b>GridPulse REST API + minimal ops console</b> — the public surface plus a read-only dashboard to drive the live demo.</li>
+        </ul>
+      </div>
+      <div class="scope out">
+        <div class="hd">▼ OUT OF SCOPE — Future iterations</div>
+        <ul>
+          <li><b>Physical locker / hardware integration</b> — no real cabinet actuation or hydrogen valve control during the sprint; telemetry is simulated.</li>
+          <li><b>National grid SCADA integration</b> — grid-failure signals are simulated, not pulled from a live DisCo/SCADA feed.</li>
+          <li><b>Consumer-facing mobile app</b> — GridPulse is strictly a B2B infrastructure layer; rider UX belongs to the operators who consume the API.</li>
+          <li><b>On-chain mainnet settlement</b> — settlement runs against a testnet/sandbox; production custody, KYC and treasury controls are deferred.</li>
+          <li><b>ML model training pipeline</b> — the forecasting node uses a heuristic/seeded model in the MVP; a trained demand model is a roadmap item.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="font-size:20px">4.1 — Technical Deliverables: API Surface</h3>
+    <table class="spec">
+      <thead><tr><th>Endpoint</th><th>Purpose</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>POST /v1/telemetry/ingest</td><td>Cloud-side ingest hook behind the IoT Rule → Lambda path</td><td>Accepts the polymorphic envelope; idempotent on messageId</td></tr>
+        <tr><td>GET /v1/nodes/{id}/state</td><td>Latest normalized state for any node, any chemistry</td><td>Single read against DynamoDB STATE#latest item</td></tr>
+        <tr><td>GET /v1/clusters/{id}/availability</td><td>Aggregated kWh-equivalent availability across a cluster</td><td>Powered by the cluster GSI — the PS-1 visibility layer</td></tr>
+        <tr><td>POST /v1/orchestrate/rebalance</td><td>Trigger / simulate a grid-failure rebalancing run</td><td>Starts a LangGraph run; returns runId</td></tr>
+        <tr><td>GET /v1/fleets/{id}/routing-plan</td><td>Active reroute plan for a fleet</td><td>Reflects the agent's REROUTE decision incl. cross-chemistry hops</td></tr>
+        <tr><td>POST /v1/settlements/intent</td><td>Create a proof-gated cross-operator settlement intent</td><td>Clears only on verified IoT hardware proof</td></tr>
+        <tr><td>GET /v1/ledger/clean-energy</td><td>Export immutable kWh/MJ clean-energy records</td><td>The MRV / carbon-attestation feed</td></tr>
+        <tr><td>GET /v1/health</td><td>Service + agent liveness</td><td>Includes last successful checkpoint timestamp</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:20px;margin-top:28px">4.2 — Data Models &amp; Agent State Boundaries</h3>
+    <p>DynamoDB uses a <strong>single-table polymorphic design</strong>. Partition/sort keys: <span class="tag">NODE#&lt;id&gt;</span> with sort keys <span class="tag">META</span>, <span class="tag">STATE#latest</span>, <span class="tag">TELEMETRY#&lt;ts&gt;</span>; <span class="tag">OPERATOR#&lt;id&gt;</span>; <span class="tag">REBAL#&lt;runId&gt;</span> with <span class="tag">STATE</span> and <span class="tag">EVENT#&lt;ts&gt;</span> items; <span class="tag">SETTLE#&lt;id&gt;</span>. A single GSI keyed on <span class="tag">cluster</span> powers the availability API. The agent's state boundary is explicit: the LangGraph run owns the rebalancing decision and writes only <em>intents</em> (reroutes, source-shifts, settlement intents) — it never directly actuates hardware or moves funds, which keeps the autonomous layer auditable and reversible.</p>
+  </div>
+</section>
+
+<!-- ================= 5. DATA SCHEMA ================= -->
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">05</span><h2 class="sec-title">Data Schema &amp; Payload Blueprints</h2></div>
+    <p class="sec-deck">Concrete contracts that ground the report as a rigorous reference, not a sketch.</p>
+
+    <h3 style="font-size:18px">5.1 — Polymorphic Station Node Telemetry → AWS IoT Core</h3>
+    <p>A single envelope carries either chemistry. The <span class="tag">assetClass</span> discriminator selects the populated <span class="tag">metrics</span> block; the shared <span class="tag">energyLedger</span> normalizes both into kWh-equivalent.</p>
+    <div class="code">
+      <div class="bar"><span class="d" style="background:#E5564B"></span><span class="d" style="background:#F4A52B"></span><span class="d" style="background:#3DBE78"></span><span class="t">topic: gridpulse/telemetry/GP-LAG-IKJ-014 · QoS 1 · MQTT</span></div>
+<pre><span class="b">{</span>
+  <span class="k">"schemaVersion"</span>: <span class="s">"gridpulse.telemetry.v1"</span>,
+  <span class="k">"messageId"</span>: <span class="s">"7c2e1f5a-…"</span>,            <span class="c">// idempotency key</span>
+  <span class="k">"emittedAt"</span>: <span class="s">"2026-06-06T08:14:02.501Z"</span>,
+  <span class="k">"node"</span>: <span class="b">{</span>
+    <span class="k">"nodeId"</span>: <span class="s">"GP-LAG-IKJ-014"</span>,
+    <span class="k">"operatorId"</span>: <span class="s">"OP-FRANCHISE-021"</span>,
+    <span class="k">"assetClass"</span>: <span class="s">"HYDROGEN_HUB"</span>,        <span class="c">// or "LITHIUM_SWAP"</span>
+    <span class="k">"geo"</span>: <span class="b">{</span> <span class="k">"lat"</span>: <span class="n">6.6018</span>, <span class="k">"lng"</span>: <span class="n">3.3515</span>, <span class="k">"cluster"</span>: <span class="s">"Ikeja"</span> <span class="b">}</span>,
+    <span class="k">"powerSource"</span>: <span class="b">{</span>
+      <span class="k">"currentSource"</span>: <span class="s">"SOLAR_PV"</span>,            <span class="c">// grid down → solar</span>
+      <span class="k">"gridAvailable"</span>: <span class="n">false</span>,
+      <span class="k">"fallbackChain"</span>: [<span class="s">"GRID"</span>, <span class="s">"SOLAR_PV"</span>, <span class="s">"DIESEL_GENSET"</span>]
+    <span class="b">}</span>
+  <span class="b">}</span>,
+  <span class="k">"metrics"</span>: <span class="b">{</span>
+    <span class="c">// --- populated when assetClass == HYDROGEN_HUB ---</span>
+    <span class="k">"hydrogen"</span>: <span class="b">{</span>
+      <span class="k">"canistersTotal"</span>: <span class="n">24</span>, <span class="k">"canistersFull"</span>: <span class="n">9</span>,
+      <span class="k">"tankPressurePsi"</span>: <span class="n">4350</span>, <span class="k">"flowRateGramPerMin"</span>: <span class="n">18.4</span>,
+      <span class="k">"purityPct"</span>: <span class="n">99.97</span>, <span class="k">"tankTempC"</span>: <span class="n">33.1</span>,
+      <span class="k">"leakPpm"</span>: <span class="n">2</span>, <span class="k">"compressorDutyCyclePct"</span>: <span class="n">62</span>
+    <span class="b">}</span>
+    <span class="c">// --- when assetClass == LITHIUM_SWAP, "lithium" block is sent instead: ---</span>
+    <span class="c">//   { baysTotal, baysCharged, baysCharging, baysFaulted,</span>
+    <span class="c">//     packs:[{ packId, soc, sohPct, cellTempC, packVoltage, cycleCount, estReadyInMin }] }</span>
+  <span class="b">}</span>,
+  <span class="k">"energyLedger"</span>: <span class="b">{</span> <span class="k">"deliveredKwhEq"</span>: <span class="n">1320.5</span>, <span class="k">"cleanFractionPct"</span>: <span class="n">0.81</span>, <span class="k">"settlementPending"</span>: <span class="n">3</span> <span class="b">}</span>,
+  <span class="k">"signature"</span>: <span class="b">{</span> <span class="k">"deviceCertId"</span>: <span class="s">"arn:aws:iot:…:cert/9af…"</span>, <span class="k">"hmac"</span>: <span class="s">"base64…"</span> <span class="b">}</span>
+<span class="b">}</span></pre>
+    </div>
+
+    <h3 style="font-size:18px;margin-top:30px">5.2 — LangGraph Routing State (passed between nodes during rebalancing)</h3>
+    <div class="code">
+      <div class="bar"><span class="d" style="background:#E5564B"></span><span class="d" style="background:#F4A52B"></span><span class="d" style="background:#3DBE78"></span><span class="t">RebalanceState · checkpointed to dynamodb://gridpulse-state/REBAL#…</span></div>
+<pre><span class="b">{</span>
+  <span class="k">"runId"</span>: <span class="s">"rebal-2026-06-06-ikj-0042"</span>,
+  <span class="k">"trigger"</span>: <span class="b">{</span> <span class="k">"type"</span>: <span class="s">"GRID_FAILURE"</span>, <span class="k">"clusterId"</span>: <span class="s">"Ikeja"</span>,
+               <span class="k">"detectedAt"</span>: <span class="s">"2026-06-06T08:14:03Z"</span>, <span class="k">"confidence"</span>: <span class="n">0.93</span> <span class="b">}</span>,
+  <span class="k">"graphPhase"</span>: <span class="s">"ALLOCATE"</span>,   <span class="c">// ASSESS|FORECAST|ALLOCATE|REROUTE|SETTLE|DONE</span>
+  <span class="k">"context"</span>: <span class="b">{</span>
+    <span class="k">"fleetAtRisk"</span>: [<span class="b">{</span> <span class="k">"fleetId"</span>: <span class="s">"OP-FLEET-007"</span>, <span class="k">"vehicles"</span>: <span class="n">142</span>,
+                      <span class="k">"avgRangeKmRemaining"</span>: <span class="n">11.3</span>, <span class="k">"chemistry"</span>: <span class="s">"LITHIUM"</span> <span class="b">}</span>],
+    <span class="k">"candidateNodes"</span>: [<span class="b">{</span> <span class="k">"nodeId"</span>: <span class="s">"GP-LAG-IKJ-014"</span>, <span class="k">"assetClass"</span>: <span class="s">"HYDROGEN_HUB"</span>,
+                       <span class="k">"availableKwhEq"</span>: <span class="n">210.0</span>, <span class="k">"etaMin"</span>: <span class="n">7</span>, <span class="k">"loadPct"</span>: <span class="n">0.41</span> <span class="b">}</span>]
+  <span class="b">}</span>,
+  <span class="k">"forecast"</span>: <span class="b">{</span> <span class="k">"depletionHorizonMin"</span>: <span class="n">38</span>, <span class="k">"demandSpikeFactor"</span>: <span class="n">1.7</span>,
+                <span class="k">"model"</span>: <span class="s">"gridpulse-demand-heuristic-v1"</span> <span class="b">}</span>,
+  <span class="k">"decision"</span>: <span class="b">{</span>
+    <span class="k">"reroutes"</span>: [<span class="b">{</span> <span class="k">"fleetId"</span>: <span class="s">"OP-FLEET-007"</span>, <span class="k">"toNode"</span>: <span class="s">"GP-LAG-IKJ-014"</span>,
+                  <span class="k">"units"</span>: <span class="n">60</span>, <span class="k">"crossChemistry"</span>: <span class="n">true</span> <span class="b">}</span>],
+    <span class="k">"loadShifts"</span>: [<span class="b">{</span> <span class="k">"nodeId"</span>: <span class="s">"GP-LAG-IKJ-014"</span>, <span class="k">"powerSource"</span>: <span class="s">"SOLAR_PV"</span> <span class="b">}</span>],
+    <span class="k">"humanApprovalRequired"</span>: <span class="n">false</span>     <span class="c">// 60 units &lt; gate threshold</span>
+  <span class="b">}</span>,
+  <span class="k">"settlement"</span>: <span class="b">{</span> <span class="k">"intents"</span>: [<span class="b">{</span> <span class="k">"payer"</span>: <span class="s">"OP-FLEET-007"</span>, <span class="k">"payee"</span>: <span class="s">"OP-FRANCHISE-021"</span>,
+                              <span class="k">"kwhEq"</span>: <span class="n">42.0</span>, <span class="k">"status"</span>: <span class="s">"PENDING_PROOF"</span> <span class="b">}</span>] <span class="b">}</span>,
+  <span class="k">"audit"</span>: <span class="b">{</span> <span class="k">"agent"</span>: <span class="s">"cencori-orchestrator"</span>, <span class="k">"reasoningTrace"</span>: [<span class="s">"…"</span>],
+             <span class="k">"checkpoint"</span>: <span class="s">"REBAL#rebal-2026-06-06-ikj-0042#ALLOCATE"</span> <span class="b">}</span>
+<span class="b">}</span></pre>
+    </div>
+    <p style="margin-top:16px">The state object is the contract between nodes. Each node receives it, mutates only its owned fields, and returns it; the checkpointer persists the mutation before the next node runs. This makes the autonomous decision <strong>replayable and fully auditable</strong> — a property the settlement and carbon-verification layers depend on.</p>
+  </div>
+</section>
+
+<!-- ================= 6. IMPACT / VISION ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">06</span><h2 class="sec-title">Business Impact, Scalability &amp; Vision</h2></div>
+    <p class="sec-deck">From recovered rider-hours to internationally bankable clean-energy collateral.</p>
+
+    <h3 style="font-size:20px">6.1 — Operational Cost Reduction (transparent model)</h3>
+    <p>For a commercial e-mobility fleet, downtime is the dominant variable cost: a rider who cannot swap or refuel does not earn, and the operator's asset-financing obligation does not pause. GridPulse attacks this directly by collapsing stock-out probability and eliminating manual outage response. The model below is <strong>illustrative and assumption-driven</strong> — presented so the method, not a marketing figure, is what persuades:</p>
+    <div class="callout">
+      <p style="margin:0;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.7">
+      <strong>Assume</strong> a 1,000-vehicle fleet · 8 earning-hours/day · ₦1,800 net margin/rider-hour<br>
+      <strong>Baseline</strong> stock-out + outage downtime ≈ 6% of earning-hours lost<br>
+      <strong>With GridPulse</strong> predictive pre-positioning + autonomous reroute → modelled 4 pts recovered<br>
+      <strong>Recovered</strong> ≈ 1,000 × 8 × 0.04 × ₦1,800 ≈ <strong style="color:var(--amber-dk)">₦576,000 / day</strong> ≈ ₦210M / year / 1,000 vehicles
+      </p>
+    </div>
+    <p>Against MAX-class ambitions of supporting hundreds of thousands of drivers<sup class="c">[13]</sup>, even conservative per-fleet recovery compounds into network-level economics that change the unit cost of African e-mobility. The point is not the exact naira figure — it is that <strong>availability is now an engineered, measurable SLA rather than an act of faith.</strong></p>
+
+    <h3 style="font-size:20px;margin-top:30px">6.2 — The Ledger as Bankable Carbon Collateral</h3>
+    <p>The single hardest part of issuing carbon credits or structuring a green bond in this market is <strong>verification</strong>: proving, to an international standard, that the clean energy was actually delivered. GridPulse produces this as a by-product. Every settled energy transfer writes an immutable, signed kWh/MJ record tied to verifiable IoT hardware proof — exactly the Measurement, Reporting &amp; Verification (MRV) artifact a credit registry or bond auditor needs. This converts a fragmented, paper-based operator network into one that can produce <strong>machine-verifiable, audit-grade environmental attestations on demand</strong>, unlocking carbon-credit revenue and green-bond financing that are otherwise inaccessible. This mirrors the systems-level, energy-and-economics framing that institutions such as Stanford's new Sustainable Mobility Center<sup class="c">[1]</sup> and Harvard's urban-mobility climate initiative<sup class="c">[2]</sup> argue the sector now requires.</p>
+
+    <h3 style="font-size:20px;margin-top:30px">6.3 — Horizontal Scalability Across Sub-Saharan Africa</h3>
+    <div class="cards">
+      <div class="card"><div class="ic" style="background:var(--amber)">1</div><h4>Serverless by default</h4><p>IoT Core fleet provisioning, DynamoDB on-demand capacity, and Lambda concurrency scale per-cluster with zero re-architecture — the same pattern AWS has validated at 50× load on comparable EV telemetry<sup class="c">[19]</sup>.</p></div>
+      <div class="card"><div class="ic" style="background:var(--cyan)">2</div><h4>Cluster, then city</h4><p>The unit of expansion is the cluster (Ikeja, Yaba…), then the city (Ibadan, Kano), then the corridor (Accra, Kumasi, Nairobi). Each new node simply registers and begins emitting the standard envelope.</p></div>
+      <div class="card"><div class="ic" style="background:var(--green)">3</div><h4>Operator-agnostic onboarding</h4><p>Because the abstraction is chemistry- and operator-blind, GridPulse can absorb a new franchise — lithium or hydrogen, incumbent or startup — without bespoke integration, growing the shared marketplace network-effect with each join.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 7. NOVELTY (DARK) ================= -->
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">07</span><h2 class="sec-title">Novelty — The Defensible Distinction</h2></div>
+    <p class="sec-deck">What makes GridPulse architecturally new, and not a dashboard with extra steps.</p>
+    <p>Existing EV-energy platforms monitor; GridPulse <strong>governs</strong>. The defensibility rests on three compounding firsts, each of which is hard to copy because they only work together.</p>
+    <div class="nov">
+      <div class="n"><div class="num">01</div><h4>Chemistry-agnostic abstraction</h4><p>The first layer to model a lithium swap cabinet and a hydrogen canister hub as <em>the same kind of thing</em> — interchangeable kWh-equivalent energy nodes. This is the "software-defined energy" primitive everything else builds on.</p></div>
+      <div class="n"><div class="num">02</div><h4>Autonomous agentic rebalancing</h4><p>A stateful LangGraph/Cencori loop that <em>decides and acts</em> on grid failure — rerouting fleets across operators and across chemistries without a human — rather than surfacing an alert for someone to handle later.</p></div>
+      <div class="n"><div class="num">03</div><h4>Trustless cross-operator settlement</h4><p>Proof-gated elizaOS M2M settlement lets <em>competitors</em> share infrastructure safely. This dissolves the coordination barrier — distrust between operators — that keeps the market siloed today.</p></div>
+    </div>
+    <div class="callout" style="margin-top:26px">
+      <p style="margin:0"><strong>The kicker for these judges:</strong> GridPulse is the autonomous, multi-chemistry, multi-operator generalization of the exact EV-charging reference architecture AWS already publishes and endorses<sup class="c">[18,19,20]</sup>. It speaks AWS's own architectural language — and then extends it into territory the reference design explicitly leaves open. That is the difference between a hackathon demo and a credible piece of infrastructure.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 8. PHASES ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">08</span><h2 class="sec-title">Project Phases &amp; Deliverables</h2></div>
+    <p class="sec-deck">The 24-hour sprint, hour-blocked — then the path beyond the hackathon.</p>
+
+    <div class="phase"><div class="hh"><span class="ph">Phase 0</span><span class="hr">H0–2</span></div><div class="bd"><h4>Foundation &amp; IaC scaffold</h4><p>Provision IoT Core thing-types &amp; rules, the DynamoDB single-table model + cluster GSI, and Lambda skeletons. Lock the polymorphic schema contract.</p><div class="del"><span class="chip">IoT Core policy</span><span class="chip">DDB table + GSI</span><span class="chip">schema v1</span></div></div></div>
+
+    <div class="phase"><div class="hh"><span class="ph">Phase 1</span><span class="hr">H2–8</span></div><div class="bd"><h4>Telemetry simulator &amp; ingestion</h4><p>Python generator streaming both chemistries (with injectable grid-failure events) → IoT Core → normalization Lambda → DynamoDB. PS-1 visibility layer goes live.</p><div class="del"><span class="chip">simulator.py</span><span class="chip">normalize λ</span><span class="chip">/clusters/{id}/availability</span></div></div></div>
+
+    <div class="phase"><div class="hh"><span class="ph">Phase 2</span><span class="hr">H8–15</span></div><div class="bd"><h4>Agentic orchestration loop</h4><p>Cencori-managed LangGraph cycle: grid-failure ASSESS, demand FORECAST, cross-chemistry ALLOCATE, REROUTE emission, with DynamoDB checkpointing and the human-gate threshold, wired through Step Functions. PS-6 + PS-9 solved.</p><div class="del"><span class="chip">RebalanceState</span><span class="chip">/orchestrate/rebalance</span><span class="chip">Step Functions</span></div></div></div>
+
+    <div class="phase"><div class="hh"><span class="ph">Phase 3</span><span class="hr">H15–20</span></div><div class="bd"><h4>Settlement &amp; clean-energy ledger</h4><p>elizaOS proof-gated M2M settlement intents; immutable kWh/MJ ledger; MRV attestation export endpoint.</p><div class="del"><span class="chip">/settlements/intent</span><span class="chip">/ledger/clean-energy</span></div></div></div>
+
+    <div class="phase"><div class="hh"><span class="ph">Phase 4</span><span class="hr">H20–24</span></div><div class="bd"><h4>API surface, ops console &amp; demo</h4><p>Finalize the REST API, ship the read-only ops dashboard, rehearse the grid-failure → autonomous-reroute → settlement live demo, and complete this SOW.</p><div class="del"><span class="chip">REST API</span><span class="chip">ops console</span><span class="chip">demo script</span><span class="chip">SOW</span></div></div></div>
+
+    <div class="phase" style="border-color:var(--cyan);border-style:dashed"><div class="hh" style="background:var(--cyan-dk)"><span class="ph" style="color:#fff">Beyond</span><span class="hr">Roadmap</span></div><div class="bd"><h4>Post-hackathon hardening</h4><p>Trained demand model, real DisCo/SCADA grid feed, physical hardware actuation, mainnet settlement with treasury controls, and multi-region rollout to secondary African cities.</p><div class="del"><span class="chip">ML pipeline</span><span class="chip">SCADA</span><span class="chip">mainnet</span><span class="chip">multi-region</span></div></div></div>
+  </div>
+</section>
+
+<!-- ================= 9. SUCCESS CRITERIA ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">09</span><h2 class="sec-title">Success Criteria</h2></div>
+    <p class="sec-deck">Demonstrable, measurable outcomes the judges can watch happen live.</p>
+    <div class="metrics">
+      <div class="metric"><div class="big">0</div><div><h4>Stranded fleets in simulation</h4><p>An injected grid failure in a cluster resolves with no simulated fleet left without a viable energy node.</p></div></div>
+      <div class="metric"><div class="big">&lt;5s</div><div><h4>Detection → reroute decision</h4><p>From grid-failure event to a committed, checkpointed REROUTE decision in the agent loop.</p></div></div>
+      <div class="metric"><div class="big">2 / 2</div><div><h4>Chemistries unified</h4><p>Lithium and hydrogen nodes both ingest, normalize and participate in the same allocation decision.</p></div></div>
+      <div class="metric"><div class="big">100%</div><div><h4>Proof-gated settlements</h4><p>Every cleared settlement intent traces to verifiable IoT hardware proof and an immutable ledger entry.</p></div></div>
+      <div class="metric"><div class="big">1</div><div><h4>End-to-end live demo</h4><p>Grid failure → forecast → cross-chemistry reroute → settlement → carbon attestation, run start-to-finish without manual intervention.</p></div></div>
+      <div class="metric"><div class="big">8</div><div><h4>API endpoints operational</h4><p>The full §4.1 surface responding against live simulated state.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 10. RISK ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">10</span><h2 class="sec-title">Risk Management</h2></div>
+    <p class="sec-deck">Engineering trade-offs named honestly, with the mitigation already designed in.</p>
+    <table class="risk">
+      <thead><tr><th style="width:26%">Risk</th><th style="width:12%">Severity</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>Autonomous agent makes a bad reroute / hallucinated decision</td><td><span class="sev h">HIGH</span></td><td>Agent writes <em>intents</em> only — never directly actuates. Configurable human-gate intercepts high-blast-radius decisions; every step is checkpointed and replayable for audit.</td></tr>
+        <tr><td>Telemetry spoofing / fraudulent energy claims</td><td><span class="sev h">HIGH</span></td><td>Device-certificate signing at IoT Core; settlement is proof-gated against signed hardware telemetry, so a claim with no corroborating PSI/discharge proof never clears.</td></tr>
+        <tr><td>Hydrogen handling safety (pressure, leak)</td><td><span class="sev m">MED</span></td><td>Leak-ppm and pressure thresholds are first-class telemetry fields; nodes breaching safety bounds are removed from the candidate set before ALLOCATE ever considers them.</td></tr>
+        <tr><td>Live grid-failure signal unavailable (no SCADA)</td><td><span class="sev m">MED</span></td><td>MVP uses a simulated, injectable grid-failure event; the trigger interface is abstracted so a real DisCo/SCADA feed drops in without touching the agent logic.</td></tr>
+        <tr><td>Cross-operator settlement dispute</td><td><span class="sev m">MED</span></td><td>Immutable, signed ledger with full reasoning-trace audit means every disputed transfer has a single source of truth.</td></tr>
+        <tr><td>AWS cost runaway at scale</td><td><span class="sev l">LOW</span></td><td>Serverless, pay-per-use primitives; DynamoDB on-demand and Lambda concurrency caps bound spend; no idle infrastructure.</td></tr>
+        <tr><td>Demo reliability under judging pressure</td><td><span class="sev l">LOW</span></td><td>Deterministic, seeded simulator + pre-recorded fallback of the live run; idempotent ingest prevents replay corruption.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= REFERENCES ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">§</span><h2 class="sec-title">References</h2></div>
+    <p class="sec-deck">Academic, institutional, industry and AWS-primary sources underpinning the claims above.</p>
+    <ol class="refs">
+      <li><b>Stanford Sustainable Mobility Center.</b> "Sustainable Mobility Center aims to transform how the world moves." <span class="meta">Stanford Report / Precourt Institute for Energy, May 2026.</span><br><a href="https://news.stanford.edu/stories/2026/05/sustainable-mobility-center-launch">news.stanford.edu/stories/2026/05/sustainable-mobility-center-launch</a></li>
+      <li><b>Harvard Salata Institute.</b> "Urban Mobility and Climate Change" research initiative. <span class="meta">Harvard University.</span><br><a href="https://salatainstitute.harvard.edu/research-initiatives/urban-mobility-and-climate-change/">salatainstitute.harvard.edu/research-initiatives/urban-mobility-and-climate-change</a></li>
+      <li><b>Harvard Business School.</b> Faculty research item (mobility / infrastructure). <span class="meta">HBS.</span><br><a href="https://www.hbs.edu/faculty/Pages/item.aspx?num=52965">hbs.edu/faculty/Pages/item.aspx?num=52965</a></li>
+      <li><b>Bamiduro, A. (THISDAY interview).</b> "African Mobility Industry Has Huge Growth Potential." <span class="meta">THISDAY, Aug 2024.</span><br><a href="https://www.thisdaylive.com/2024/08/08/bamiduro-african-mobility-industry-has-huge-growth-potential/">thisdaylive.com/2024/08/08/bamiduro-african-mobility-industry-has-huge-growth-potential</a></li>
+      <li><b>Bamiduro, A.</b> "Every Ride Empowers: How Mobility Drives Jobs and Dignity in Africa." <span class="meta">LinkedIn.</span><br><a href="https://www.linkedin.com/pulse/every-ride-empowers-how-mobility-drives-jobs-dignity-africa-bamiduro-skxpf">linkedin.com/pulse/every-ride-empowers…-bamiduro</a></li>
+      <li><b>SmartDev.</b> "AI Use Cases in Mobility." <span class="meta">SmartDev.</span><br><a href="https://smartdev.com/ai-use-cases-in-mobility/">smartdev.com/ai-use-cases-in-mobility</a></li>
+      <li><b>OECD.</b> "AI in Mobility" — Progress in Implementing the EU Coordinated Plan on AI, Vol. 2. <span class="meta">OECD.</span><br><a href="https://www.oecd.org/en/publications/progress-in-implementing-the-european-union-coordinated-plan-on-artificial-intelligence-volume-2_3ac96d41-en/full-report/ai-in-mobility_3606a201.html">oecd.org/…/ai-in-mobility_3606a201.html</a></li>
+      <li><b>234Drive.</b> "EVN Expo 2025: Nigeria's Step Toward Affordable Electric Mobility" (₦6.5tn fuel-import savings projection; 2060 net-zero). <span class="meta">2025.</span><br><a href="https://234drive.com/evn-expo-2025-nigeria-step-up/">234drive.com/evn-expo-2025-nigeria-step-up</a></li>
+      <li><b>Sustainable Stories Africa.</b> "Nigeria's Electric Vehicle Shift Accelerates Despite Charging Infrastructure Constraints." <span class="meta">Feb 2026.</span><br><a href="https://sustainablestories.africa/news/nigerias-electric-vehicle-shift-accelerates-despite-charging-infrastructure-constraints">sustainablestories.africa/news/nigerias-electric-vehicle-shift-accelerates</a></li>
+      <li><b>Techpoint Africa.</b> "Nigeria wants more electric vehicles, but its EV bill could complicate things" (≈0.5% EV share). <span class="meta">Nov 2025.</span><br><a href="https://techpoint.africa/insight/nigeria-ev-bill-analysis-2025/">techpoint.africa/insight/nigeria-ev-bill-analysis-2025</a></li>
+      <li><b>Economic Confidential.</b> "What Fuel Subsidy Removal Has Given — and Taken" (subsidy-savings figures). <span class="meta">2026.</span><br><a href="https://economicconfidential.com/fuel-subsidy-removal-has-given-and-taken/">economicconfidential.com/fuel-subsidy-removal-has-given-and-taken</a></li>
+      <li><b>SEforALL &amp; RMI.</b> "Nigeria's E-Mobility Surge to Lower Emissions, Cut Costs, and Spur Economic Growth." <span class="meta">Sustainable Energy for All, Sep 2024.</span><br><a href="https://www.seforall.org/news/nigerias-e-mobility-surge-to-lower-emissions-cut-costs-and-spur-economic-growth">seforall.org/news/nigerias-e-mobility-surge</a></li>
+      <li><b>Nairametrics.</b> "Nigerian startup MAX secures \$24m to scale electric vehicle financing" (250k-driver / \$150M ARR targets). <span class="meta">Jan 2026.</span><br><a href="https://nairametrics.com/2026/01/17/nigerian-startup-max-secures-24m-to-scale-electric-vehicle-financing/">nairametrics.com/2026/01/17/nigerian-startup-max-secures-24m</a></li>
+      <li><b>TechCabal.</b> "After two years of development, MAX deploys its electric motorbikes in Nigeria" (Africa motorcycle projections). <span class="meta">2020.</span><br><a href="https://techcabal.com/2020/08/11/after-two-years-of-development-max-deploys-its-electric-motorbikes-in-nigeria/">techcabal.com/2020/08/11/max-electric-motorbikes</a></li>
+      <li><b>MobilityX Africa.</b> Nigeria country analysis (ETP 60% by 2050; 100% EV sales by 2040; 30% local production by 2032). <span class="meta">Ecosystem mapping database.</span><br><a href="https://mobilityx.africa/ecosystem-mapping-database/country-analysis/nigeria">mobilityx.africa/…/country-analysis/nigeria</a></li>
+      <li><b>Techpression.</b> "MAX launches Nigeria's first solar-powered battery swap station" (62M new motorcycles by 2030, ~70% commercial). <span class="meta">Aug 2025.</span><br><a href="https://techpression.com/max-launches-nigerias-first-solar-powered-battery-swap-station/">techpression.com/max-launches-nigerias-first-solar-powered-battery-swap-station</a></li>
+      <li><b>AWS.</b> "Electric Vehicle Charging Station Management System" reference architecture (IoT Core, Lambda, DynamoDB, Step Functions, QLDB immutable ledger). <span class="meta">AWS Architecture Center.</span><br><a href="https://docs.aws.amazon.com/architecture-diagrams/latest/electric-vehicle-charging-station-management-software/electric-vehicle-charging-station-management-software.html">docs.aws.amazon.com/architecture-diagrams/…/electric-vehicle-charging-station-management-software</a></li>
+      <li><b>AWS for Industries.</b> "Building a cloud-based EV charging monitoring platform with real-time AI analytics" (EVBrain; ~25M msgs/day, 50× stress test). <span class="meta">2026.</span><br><a href="https://aws.amazon.com/blogs/industries/building-a-cloud-based-ev-charging-monitoring-platform-with-real-time-ai-analytics/">aws.amazon.com/blogs/industries/…ev-charging-monitoring-platform</a></li>
+      <li><b>AWS Solutions.</b> "Guidance for Modernizing Electric Vehicle (EV) Charging on AWS" (serverless CSMS, OCPP, 99.9% uptime). <span class="meta">AWS Solutions Library.</span><br><a href="https://aws.amazon.com/solutions/guidance/modernizing-electric-vehicle-charging-on-aws/">aws.amazon.com/solutions/guidance/modernizing-electric-vehicle-charging-on-aws</a></li>
+    </ol>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>GridPulse API</b> — The Autonomous Multi-Source EV Energy Orchestrator · Statement of Work v1.0</div>
+    <div>Prepared for the Arthurite × AWS "One with AI" Hackathon · PS-1 · PS-6 · PS-9</div>
+  </div>
+</footer>
+
+</body>
+</html>
